@@ -108,10 +108,6 @@ def consistency(lines_o1, lines_o2):
 
 def entailment(lines_o1, lines_o2):
 
-     # print("here are all assumptions:\n")
-        # prover.print_assumptions("Prover9")
-        # print("\n")
-
     for c1, goal in enumerate(lines_o2):
 
         # # set first lines to use prover
@@ -137,11 +133,6 @@ def entailment(lines_o1, lines_o2):
         if proven is False:
             print("no entailment, here's a counterexample: ")
             entail = False
-            # mace1 = MaceCommand(goals, assumptions)
-            # print("-----------MODEL BY MACE----------------\n")
-            # if mace1.build_model():
-            #     print(mace1.model(format='cooked'))
-            # break
 
             mb = MaceCommand(goals, [assumptions])
 
