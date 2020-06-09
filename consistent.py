@@ -90,8 +90,9 @@ def consistency(lines_o1, lines_o2):
 
 def entailment(lines_o1, lines_o2):
     saved_proofs = []
-    saved_models = []
+    new_axioms = []
     entail = 0
+    counter_file_created = False
 
     for c1, goal in enumerate(lines_o2):
 
@@ -134,19 +135,20 @@ def entailment(lines_o1, lines_o2):
             print("from mace, the goal: \n", mb.goal())
 
             # use mb.build_model([assumptions]) to print the input
-            # is there a counterexample?
+            # is there a model?
             counterexample = mb.build_model()
+            new_axioms.append(mb.goal())
 
-            if counterexample:
-                get_model = mb.model(format='cooked')
-                saved_models.append(get_model)
-                print("model constructed by mace: \n", get_model)
+            if counterexample & (counter_file_created is False):
+                counterexample_model = mb.model(format='cooked')
+                # create_file("counterexample_by_mace", counterexample_model)
+                counter_file_created = True
+                print("model constructed by mace, file created : \n", counterexample_model)
             elif counterexample is False:
                 print("no counterexample found for the axiom: \n", mb.goal())
 
     if entail > 0:
-        # for c, model in enumerate(saved_models):
-        #     create_file("model"+str(c), model)
+        # create_file("remaining_axioms", new_axioms)
         return False
     else:
         # for c, proof in enumerate(saved_proofs):
@@ -177,7 +179,7 @@ replace_symbol(lines2, "\t", "")
 
 if consistency(lines1, lines2):
 
-    print("o1 and o2 are consistent! file of model created. lets check entailment: ")
+    print("o1 and o2 are consistent! lets check entailment: ")
     o1_entails_o2 = entailment(lines1, lines2)
     o2_entails_o1 = entailment(lines2, lines1)
 
@@ -194,7 +196,6 @@ if consistency(lines1, lines2):
 
 else:
     print("o1 and o2 are not consistent!")
-
 
 file1.close()
 file2.close()
