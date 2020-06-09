@@ -19,14 +19,13 @@ ontology1 = input("file name of ontology 1: ")
 ontology2 = input("file name of ontology 2: ")
 
 with open(ontology1, "r") as file1:
-    lines_o1 = file1.readlines()
+    lines1 = file1.readlines()
 
 with open(ontology2, "r") as file2:
-    lines_o2 = file2.readlines()
+    lines2 = file2.readlines()
 
 
 def concatenate_axioms(lines):
-
     # clean up list
     lines.remove("formulas(assumptions).\n")
     lines.remove("end_of_list.\n")
@@ -60,27 +59,21 @@ def concatenate_axioms(lines):
     return all_axioms
 
 
-def replace_symbol(lines, symbol, newsymbol):
+def replace_symbol(lines, symbol, new_symbol):
     for x, line in enumerate(lines):
         while symbol in lines[x]:
-            lines[x] = line.replace(symbol, newsymbol)
+            lines[x] = line.replace(symbol, new_symbol)
     return lines
 
 
-lines_o1 = concatenate_axioms(lines_o1)
-lines_o2 = concatenate_axioms(lines_o2)
+lines1 = concatenate_axioms(lines1)
+lines2 = concatenate_axioms(lines2)
 
-replace_symbol(lines_o1, ".\n", "")
-replace_symbol(lines_o1, "\t", "")
-# replace_symbol(lines_o1, "\n", "")
+replace_symbol(lines1, ".\n", "")
+replace_symbol(lines1, "\t", "")
 
-# lines_o1 = "\n".join(lines_o1)
-
-replace_symbol(lines_o2, ".\n", "")
-replace_symbol(lines_o2, "\t", "")
-# replace_symbol(lines_o2, "\n", "")
-
-
+replace_symbol(lines2, ".\n", "")
+replace_symbol(lines2, "\t", "")
 
 # --------------- creates new file for each axiom ---------------
 # for num, axiom in enumerate(lines_o2, 1):
@@ -88,27 +81,32 @@ replace_symbol(lines_o2, "\t", "")
 #     with open(new_filename, "w+") as new_file:
 #         new_file.write(axiom)
 
-# The prove() method takes three optional arguments: a goal,
-# a list of assumptions, and a verbose boolean to indicate whether
-# the proof should be printed to the console.
-# Example:
-
-# p1 = read_expr('man(socrates)')
-# print(p1)
-# p2 = read_expr('all x (man(x) -> mortal(x))')
-# print(p2)
-# c = read_expr('all x\n\t(mortal(x))\n')
-# print(c)
-# Prover9().prove(c, [p1,p2], verbose=True)
-
-print("from lines_o1: \n", lines_o1, "\n\n")
-print("from lines_o2: \n", lines_o2, "\n\n")
-
-# check entailment
-
-def entailment (lines_o1, lines_o2):
+print("from lines1: \n", lines1, "\n\n")
+print("from lines2: \n", lines2, "\n\n")
 
 
+def consistency(lines_o1, lines_o2):
+    lines = lines_o1 + lines_o2
+    assumptions = read_expr(lines[0])
+    mb = MaceCommand(None, [assumptions])
+
+    # add axioms into assumptions
+    for c, added in enumerate(lines):
+        if c == 0:
+            continue
+        mb.add_assumptions([read_expr(added)])
+
+    # use mb.build_model([assumptions]) to print the input
+    if mb.build_model():
+        print(mb.model(format='cooked'))
+        consistent = True
+    else:
+        consistent = False
+
+    return consistent
+
+
+def entailment(lines_o1, lines_o2):
 
      # print("here are all assumptions:\n")
         # prover.print_assumptions("Prover9")
@@ -130,37 +128,61 @@ def entailment (lines_o1, lines_o2):
             prover.add_assumptions([read_expr(added)])
 
         print("from prover9, assumptions: \n", prover.assumptions())
-        print("\nfrom p9, the goal: \n",prover.goal())
+        print("\nfrom p9, the goal: \n", prover.goal())
 
         proven = prover.prove()
-        print("is there proof? ", proven)
+        # print("is there proof? ", proven)
         print(prover.proof())
 
         if proven is False:
-            print("no entailment")
+            print("no entailment, here's a counterexample: ")
             entail = False
-            break
+            # mace1 = MaceCommand(goals, assumptions)
+            # print("-----------MODEL BY MACE----------------\n")
+            # if mace1.build_model():
+            #     print(mace1.model(format='cooked'))
+            # break
+
+            mb = MaceCommand(goals, [assumptions])
+
+            # add axioms into assumptions
+            for c, added in enumerate(lines_o1):
+                if c == 0:
+                    continue
+                mb.add_assumptions([read_expr(added)])
+
+            print("from mace, assumptions: \n", mb.assumptions())
+            print("\nfrom mace, the goal: \n", mb.goal())
+
+            # use mb.build_model([assumptions]) to print the input
+            if mb.build_model():
+                print(mb.model(format='cooked'))
+
         else:
             entail = True
 
     return entail
 
 
-o1_entails_o2 = entailment(lines_o1, lines_o2)
-o2_entails_o1 = entailment(lines_o2, lines_o1)
+# main program
 
-if o1_entails_o2:
-    print("ontology1 entails ontology 2!")
-else:
-    print("o1 does not entail o2!")
+if consistency(lines1, lines2):
+    print("o1 and o2 are consistent! lets check entailment: ")
 
-if o2_entails_o1:
-    print("ontology2 entails ontology 1!")
-else:
-    print("o2 does not entail o1!")
+    o1_entails_o2 = entailment(lines1, lines2)
+    o2_entails_o1 = entailment(lines2, lines1)
 
-if o1_entails_o2 & o2_entails_o1:
-    print("o1 and o2 are consistent!")
+    if o1_entails_o2:
+        print("ontology1 entails ontology 2")
+
+    if o2_entails_o1:
+        print("ontology2 entails ontology 1")
+
+    if o1_entails_o2 & o2_entails_o1:
+        print("o1 and o2 are equivalent!")
+    elif (o1_entails_o2 is False) & (o2_entails_o1 is False):
+        print("o1 and o2 are independent of each other")
+
 else:
     print("o1 and o2 are not consistent!")
 
