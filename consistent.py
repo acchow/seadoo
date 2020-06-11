@@ -1,6 +1,7 @@
 import requests
 import nltk
 from nltk import Prover9
+import os
 
 from nltk import *
 from nltk.sem.drt import DrtParser
@@ -57,12 +58,13 @@ def replace_symbol(lines, symbol, new_symbol):
     return lines
 
 
-def create_file(name, contents):
-    with open(name, "w+") as new_file:
+def create_file(name, contents, path):
+    new_path = os.path.join(path, name)
+    with open(new_path, "w+") as new_file:
         new_file.write(contents)
 
 
-def consistency(lines_o1, lines_o2):
+def consistency(lines_o1, lines_o2, path):
     lines = lines_o1 + lines_o2
     assumptions = read_expr(lines[0])
     mb = MaceCommand(None, [assumptions])
@@ -80,7 +82,7 @@ def consistency(lines_o1, lines_o2):
         consistent = True
         consistent_model = mb.model(format='cooked')
         # print("o1 and o2 are consistent, here's the model constructed by mace: \n", consistent_model)
-        # create_file("consistency_model_" + ontology1 + "_and_" + ontology2, c_model)
+        create_file("consistency_model", consistent_model, path)
     else:
         consistent = False
         # print("o1 and o2 are not mutually consistent")
@@ -88,7 +90,7 @@ def consistency(lines_o1, lines_o2):
     return consistent
 
 
-def entailment(lines_o1, lines_o2):
+def entailment(lines_o1, lines_o2, path):
     saved_proofs = []
     new_axioms = []
     entail = 0
@@ -141,18 +143,18 @@ def entailment(lines_o1, lines_o2):
 
             if counterexample & (counter_file_created is False):
                 counterexample_model = mb.model(format='cooked')
-                # create_file("counterexample_by_mace", counterexample_model)
+                create_file("counterexample_found", counterexample_model, path)
                 counter_file_created = True
                 print("model constructed by mace, file created : \n", counterexample_model)
             elif counterexample is False:
                 print("no counterexample found for the axiom: \n", mb.goal())
 
     if entail > 0:
-        # create_file("remaining_axioms", new_axioms)
+        # create_file("remaining_axioms", new_axioms, path)
         return False
     else:
-        # for c, proof in enumerate(saved_proofs):
-        #     create_file("proof"+str(c), proof)
+        for c, proof in enumerate(saved_proofs):
+            create_file("proof"+str(c), proof, path)
         return True
 
 
@@ -167,6 +169,12 @@ with open(ontology1, "r") as file1:
 with open(ontology2, "r") as file2:
     lines2 = file2.readlines()
 
+ontology1 = ontology1.replace(".in", "")
+ontology2 = ontology2.replace(".in", "")
+directory = ontology1 + "_" + ontology2
+if not os.path.exists(directory):
+    os.mkdir(directory)
+
 lines1 = concatenate_axioms(lines1)
 lines2 = concatenate_axioms(lines2)
 replace_symbol(lines1, ".\n", "")
@@ -177,25 +185,31 @@ replace_symbol(lines2, "\t", "")
 # print("from lines1: \n", lines1, "\n\n")
 # print("from lines2: \n", lines2, "\n\n")
 
-if consistency(lines1, lines2):
+if consistency(lines1, lines2, directory):
 
     print("o1 and o2 are consistent! lets check entailment: ")
-    o1_entails_o2 = entailment(lines1, lines2)
-    o2_entails_o1 = entailment(lines2, lines1)
-
-    if o1_entails_o2:
-        print("ontology1 entails ontology 2")
-
-    if o2_entails_o1:
-        print("ontology2 entails ontology 1")
+    o1_entails_o2 = entailment(lines1, lines2, directory)
+    o2_entails_o1 = entailment(lines2, lines1, directory)
 
     if o1_entails_o2 & o2_entails_o1:
         print("o1 and o2 are equivalent!")
+        os.rename(directory, ontology1 + "_equivalent_" + ontology2)
+
     elif (o1_entails_o2 is False) & (o2_entails_o1 is False):
         print("o1 and o2 are independent of each other")
+        os.rename(directory, ontology1 + "_consistent_" + ontology2)
+
+    elif o1_entails_o2:
+        print("ontology1 entails ontology 2")
+        os.rename(directory, ontology1 + "_entails_" + ontology2)
+
+    elif o2_entails_o1:
+        print("ontology2 entails ontology 1")
+        os.rename(directory, ontology2 + "_entails_" + ontology1)
 
 else:
     print("o1 and o2 are not consistent!")
+    os.rmdir(directory)
 
 file1.close()
 file2.close()
