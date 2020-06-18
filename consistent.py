@@ -158,6 +158,14 @@ def entailment(lines_o1, lines_o2, path):
         return True
 
 
+# create rdf triple
+def create_triple(subject, predicate, obj):
+    l1 = "<http://colore.oor.net/" + subject + ">\n"
+    l2 = "\t<http:/colore.oor.net/meta/" + predicate + ">\n"
+    l3 = "\thttp://colore.oor.net/" + obj + ">\n\n"
+    return l1 + l2 + l3
+
+
 # main program
 
 ontology1 = input("file name of ontology 1: ")
@@ -168,6 +176,8 @@ with open(ontology1, "r") as file1:
 
 with open(ontology2, "r") as file2:
     lines2 = file2.readlines()
+
+owl_file = open("owl_file", "a+")
 
 ontology1 = ontology1.replace(".in", "")
 ontology2 = ontology2.replace(".in", "")
@@ -192,24 +202,33 @@ if consistency(lines1, lines2, directory):
     o2_entails_o1 = entailment(lines2, lines1, directory)
 
     if o1_entails_o2 & o2_entails_o1:
+        owl_file.write(create_triple(ontology1, "equivalent", ontology2))
         print("o1 and o2 are equivalent!")
         os.rename(directory, ontology1 + "_equivalent_" + ontology2)
 
     elif (o1_entails_o2 is False) & (o2_entails_o1 is False):
+        owl_file.write(create_triple(ontology1, "independent", ontology2))
         print("o1 and o2 are independent of each other")
         os.rename(directory, ontology1 + "_consistent_" + ontology2)
 
     elif o1_entails_o2:
+        owl_file.write(create_triple(ontology1, "entails", ontology2))
         print("ontology1 entails ontology 2")
         os.rename(directory, ontology1 + "_entails_" + ontology2)
 
     elif o2_entails_o1:
+        owl_file.write(create_triple(ontology2, "entails", ontology1))
         print("ontology2 entails ontology 1")
         os.rename(directory, ontology2 + "_entails_" + ontology1)
 
+    else:
+        owl_file.write(create_triple(ontology1, "consistent", ontology2))
+
 else:
+    owl_file.write(create_triple(ontology1, "inconsistent", ontology2))
     print("o1 and o2 are not consistent!")
     os.rmdir(directory)
 
 file1.close()
 file2.close()
+owl_file.close()
