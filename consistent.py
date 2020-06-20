@@ -68,6 +68,7 @@ def consistency(lines_o1, lines_o2, path):
     lines = lines_o1 + lines_o2
     assumptions = read_expr(lines[0])
     mb = MaceCommand(None, [assumptions])
+    prover = Prover9Command(None, [assumptions])
 
     # add axioms into assumptions
     for c, added in enumerate(lines):
@@ -82,10 +83,16 @@ def consistency(lines_o1, lines_o2, path):
         consistent = True
         consistent_model = mb.model(format='cooked')
         # print("o1 and o2 are consistent, here's the model constructed by mace: \n", consistent_model)
-        create_file("consistency_model", consistent_model, path)
+        create_file("consistent_model", consistent_model, path)
     else:
+        for c, added in enumerate(lines):
+            if c == 0:
+                continue
+            prover.add_assumptions([read_expr(added)])
+        inconsistent_model = prover.proof()
         consistent = False
-        # print("o1 and o2 are not mutually consistent")
+        # print("o1 and o2 are mutually inconsistent, here's the proof: \n", inconsistent_model)
+        create_file("inconsistent_proof",inconsistent_model, path)
 
     return consistent
 
@@ -209,7 +216,7 @@ if consistency(lines1, lines2, directory):
     elif (o1_entails_o2 is False) & (o2_entails_o1 is False):
         owl_file.write(create_triple(ontology1, "independent", ontology2))
         print("o1 and o2 are independent of each other")
-        os.rename(directory, ontology1 + "_consistent_" + ontology2)
+        os.rename(directory, ontology1 + "_independent_" + ontology2)
 
     elif o1_entails_o2:
         owl_file.write(create_triple(ontology1, "entails", ontology2))
