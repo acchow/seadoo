@@ -192,35 +192,35 @@ def oracle(t1, lines_t1, t2, lines_t2, path, owl_file, owl_visual):
         if o1_entails_o2 & o2_entails_o1:
             owl_file.write(create_xml(t1, "equivalent", t2))
             owl_visual.write(create_xml(t1, "equivalent", t2, True))
-            print("o1 and o2 are equivalent!")
+            # print("o1 and o2 are equivalent!")
             os.rename(path, t1 + "_equivalent_" + t2)
             return "equivalent"
 
         elif (o1_entails_o2 is False) & (o2_entails_o1 is False):
             owl_file.write(create_xml(t1, "independent", t2))
             owl_visual.write(create_xml(t1, "independent", t2, True))
-            print("o1 and o2 are independent of each other")
+            # print("o1 and o2 are independent of each other")
             os.rename(path, t1 + "_independent_" + t2)
             return "independent"
 
         elif o1_entails_o2:
             owl_file.write(create_xml(t1, "entails", t2))
             owl_visual.write(create_xml(t1, "entails", t2, True))
-            print("ontology1 entails ontology 2")
+            # print("ontology1 entails ontology 2")
             os.rename(path, t1 + "_entails_" + t2)
             return "t1_entails_t2"
 
         elif o2_entails_o1:
             owl_file.write(create_xml(t2, "entails", t1))
             owl_visual.write(create_xml(t2, "entails", t1, True))
-            print("ontology2 entails ontology 1")
+            # print("ontology2 entails ontology 1")
             os.rename(path, t2 + "_entails_" + t1)
             return "t2_entails_t1"
 
     elif consistency(lines_t1, lines_t2, path) is False:
         owl_file.write(create_xml(t1, "inconsistent", t2))
         owl_visual.write(create_xml(t1, "inconsistent", t2, True))
-        print("o1 and o2 are not consistent!")
+        # print("o1 and o2 are not consistent!")
         os.rename(path, t1 + "_inconsistent_" + t2)
         return "inconsistent"
 
@@ -239,12 +239,14 @@ def main_program(t1, t2):
     t1 = t1.replace(".in", "")
     t2 = t2.replace(".in", "")
 
-    for files in os.listdir():
-        if t1 in files and t2 in files:
-            relationship = files.replace(t1, "t1").replace(t2, "t2")
-            return relationship
+    # for files in os.listdir():
+    #     possible = [t1 + "_inconsistent_" + t2]
+    #     if files is one of the possibilities
+    #         relationship = files.replace(t1, "t1").replace(t2, "t2")
+    #         return relationship
 
     new_dir = t1 + "_" + t2
+    # should be if file name has both t1 and t2 instead of os.path.exists
     if not os.path.exists(new_dir):
         os.mkdir(new_dir)
 
@@ -264,4 +266,4 @@ def main_program(t1, t2):
     return relationship
 
 
-# print(main_program("betweenness.in", "fishburn.in"))
+print(main_program("betweenness.in", "fishburn.in"))
