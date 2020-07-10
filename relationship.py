@@ -9,7 +9,9 @@ from nltk.sem.drt import DrtParser
 from nltk.sem import logic
 
 from nltk.sem import Expression
+
 read_expr = Expression.fromstring
+
 
 # logic._counter._value = 0
 
@@ -19,10 +21,11 @@ read_expr = Expression.fromstring
 
 
 def concatenate_axioms(lines):
-    # clean up list
+    # remove specific lines
     lines.remove("formulas(assumptions).\n")
     lines.remove("end_of_list.\n")
 
+    # remove comments
     for x, line in enumerate(lines):
         while "%" in lines[x]:
             lines.remove(lines[x])
@@ -68,33 +71,36 @@ def create_file(name, contents, path):
 def consistency(lines_o1, lines_o2, path):
     lines = lines_o1 + lines_o2
     assumptions = read_expr(lines[0])
-    mb = MaceCommand(None, [assumptions])
-    prover = Prover9Command(None, [assumptions])
 
-    # add axioms into assumptions
+    prover = Prover9Command(None, [assumptions])
     for c, added in enumerate(lines):
         if c == 0:
             continue
-        mb.add_assumptions([read_expr(added)])
+        prover.add_assumptions([read_expr(added)])
 
-    # use mb.build_model([assumptions]) to print the input
-    model = mb.build_model()
+    proven = prover.prove()
+    if proven:
+        consistent = False
+        inconsistent_proof = prover.proof()
+        # print("o1 and o2 are mutually inconsistent, here's the proof: \n", inconsistent_model)
+        create_file("inconsistent_proof", inconsistent_proof, path)
 
-    if model:
-        consistent = True
-        consistent_model = mb.model(format='cooked')
-        # print("o1 and o2 are consistent, here's the model constructed by mace: \n", consistent_model)
-        create_file("consistent_model", consistent_model, path)
     else:
+        mb = MaceCommand(None, [assumptions])
+        # add axioms into assumptions
         for c, added in enumerate(lines):
             if c == 0:
                 continue
-            prover.add_assumptions([read_expr(added)])
-        consistent = False
-        inconsistent_model = prover.proof()
-        # print("o1 and o2 are mutually inconsistent, here's the proof: \n", inconsistent_model)
-        create_file("inconsistent_proof", inconsistent_model, path)
+            mb.add_assumptions([read_expr(added)])
 
+        # use mb.build_model([assumptions]) to print the input
+        model = mb.build_model()
+
+        if model:
+            consistent = True
+            consistent_model = mb.model(format='cooked')
+            # print("o1 and o2 are consistent, here's the model constructed by mace: \n", consistent_model)
+            create_file("consistent_model", consistent_model, path)
     return consistent
 
 
@@ -162,7 +168,7 @@ def entailment(lines_o1, lines_o2, path):
         return False
     else:
         for c, proof in enumerate(saved_proofs):
-            create_file("proof"+str(c+1), proof, path)
+            create_file("proof" + str(c + 1), proof, path)
         return True
 
 
@@ -184,45 +190,45 @@ def create_xml(t_1, rel, t_2, visual=False):
 
 
 def oracle(t1, lines_t1, t2, lines_t2, path, owl_file, owl_visual):
+    # consistent
     if consistency(lines_t1, lines_t2, path):
-        # print("o1 and o2 are consistent! lets check entailment: ")
         o1_entails_o2 = entailment(lines_t1, lines_t2, path)
         o2_entails_o1 = entailment(lines_t2, lines_t1, path)
 
+        # equivalent
         if o1_entails_o2 & o2_entails_o1:
             owl_file.write(create_xml(t1, "equivalent", t2))
             owl_visual.write(create_xml(t1, "equivalent", t2, True))
-            # print("o1 and o2 are equivalent!")
-            os.rename(path, t1 + "_equivalent_" + t2)
-            return "equivalent"
+            os.rename(path, "equivalent_" + t1 + "_" + t2)
+            return "equivalent_t1_t2"
 
+        # independent
         elif (o1_entails_o2 is False) & (o2_entails_o1 is False):
             owl_file.write(create_xml(t1, "independent", t2))
             owl_visual.write(create_xml(t1, "independent", t2, True))
-            # print("o1 and o2 are independent of each other")
-            os.rename(path, t1 + "_independent_" + t2)
-            return "independent"
+            os.rename(path, "independent_" + t1 + "_" + t2)
+            return "independent_t1_t2"
 
+        # t1 entails t2
         elif o1_entails_o2:
             owl_file.write(create_xml(t1, "entails", t2))
             owl_visual.write(create_xml(t1, "entails", t2, True))
-            # print("ontology1 entails ontology 2")
-            os.rename(path, t1 + "_entails_" + t2)
-            return "t1_entails_t2"
+            os.rename(path, "entails_" + t1 + "_" + t2)
+            return "entails_t1_t2"
 
+        # t2 entails t1
         elif o2_entails_o1:
             owl_file.write(create_xml(t2, "entails", t1))
             owl_visual.write(create_xml(t2, "entails", t1, True))
-            # print("ontology2 entails ontology 1")
-            os.rename(path, t2 + "_entails_" + t1)
-            return "t2_entails_t1"
+            os.rename(path, "entails_" + t2 + "_" + t1)
+            return "entails_t2_t1"
 
+    # inconsistent
     elif consistency(lines_t1, lines_t2, path) is False:
         owl_file.write(create_xml(t1, "inconsistent", t2))
         owl_visual.write(create_xml(t1, "inconsistent", t2, True))
-        # print("o1 and o2 are not consistent!")
-        os.rename(path, t1 + "_inconsistent_" + t2)
-        return "inconsistent"
+        os.rename(path, "inconsistent_" + t1 + "_" + t2)
+        return "inconsistent_t1_t2"
 
 
 # main program
@@ -233,20 +239,34 @@ def main_program(t1, t2):
     with open(t2, "r") as file2:
         lines_t2 = file2.readlines()
 
-    owl_file = open("metatheory.owl", "a+")
-    owl_visual = open("alt-metatheory.owl", "a+")
-
     t1 = t1.replace(".in", "")
     t2 = t2.replace(".in", "")
 
-    # for files in os.listdir():
-    #     possible = [t1 + "_inconsistent_" + t2]
-    #     if files is one of the possibilities
-    #         relationship = files.replace(t1, "t1").replace(t2, "t2")
-    #         return relationship
+    # check if relationship has been found already
+    possible = ["inconsistent",
+                "entails",
+                "independent",
+                "equivalent"]
+
+    with open("metatheory.owl", "r") as file3:
+        all_relations = file3.readlines()
+
+    for r in all_relations:
+        for p in possible:
+            if "ObjectPropertyAssertion(:" + p + " :" + t1 + " :" + t2 + ")" in r:
+                relationship = p + "_t1_t2"
+                file3.close()
+                return relationship
+            elif "ObjectPropertyAssertion(:" + p + " :" + t2 + " :" + t1 + ")" in r:
+                relationship = p + "_t2_t1"
+                file3.close()
+                return relationship
+
+    # if not found in .owl file, create a new directory for this pair of theories
+    owl_file = open("metatheory.owl", "a+")
+    owl_visual = open("alt-metatheory.owl", "a+")
 
     new_dir = t1 + "_" + t2
-    # should be if file name has both t1 and t2 instead of os.path.exists
     if not os.path.exists(new_dir):
         os.mkdir(new_dir)
 
@@ -262,8 +282,9 @@ def main_program(t1, t2):
     file1.close()
     file2.close()
     owl_file.close()
+    owl_visual.close()
 
     return relationship
 
 
-print(main_program("betweenness.in", "fishburn.in"))
+# print(main_program("bet.in", "altwegg.in"))
