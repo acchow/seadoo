@@ -1,19 +1,7 @@
-import requests
-import nltk
-from nltk import Prover9
-# import os
-# import shutil
-
 from nltk import *
-from nltk.sem.drt import DrtParser
-from nltk.sem import logic
-
 from nltk.sem import Expression
 
 read_expr = Expression.fromstring
-
-
-# logic._counter._value = 0
 
 # -------------------------
 # this program finds the relationship between two ontologies/theories
@@ -261,6 +249,7 @@ def main_program(t1, t2):
                 relationship = p + "_t2_t1"
                 file3.close()
                 return relationship
+    file3.close()
 
     # if not found in .owl file, create a new directory for this pair of theories
     owl_file = open("metatheory.owl", "a+")
