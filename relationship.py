@@ -1,4 +1,7 @@
 from nltk import *
+import os
+import re
+
 from nltk.sem import Expression
 
 read_expr = Expression.fromstring
@@ -56,59 +59,59 @@ def create_file(name, contents, path):
         new_file.write(contents)
 
 
-def consistency(lines_o1, lines_o2, path):
-    lines = lines_o1 + lines_o2
+def consistency(lines_t1, lines_t2, path):
+    lines = lines_t1 + lines_t2
     assumptions = read_expr(lines[0])
 
-    prover = Prover9Command(None, [assumptions])
+    # set max number of models 50 (otherwise times out)
+    mb = MaceCommand(None, [assumptions], 5)
     for c, added in enumerate(lines):
         if c == 0:
             continue
-        prover.add_assumptions([read_expr(added)])
+        mb.add_assumptions([read_expr(added)])
 
-    proven = prover.prove()
-    if proven:
-        consistent = False
-        inconsistent_proof = prover.proof()
-        # print("o1 and o2 are mutually inconsistent, here's the proof: \n", inconsistent_model)
-        create_file("inconsistent_proof", inconsistent_proof, path)
+    # use mb.build_model([assumptions]) to print the input
+    model = mb.build_model()
+    # print("model", model)
+    if model:
+        consistent = True
+        consistent_model = mb.model(format='cooked')
+        create_file("consistent_model", consistent_model, path)
 
-    else:
-        mb = MaceCommand(None, [assumptions])
-        # add axioms into assumptions
+    elif model is False:
+        # up to 3 minutes
+        prover = Prover9Command(None, [assumptions], 30)
         for c, added in enumerate(lines):
             if c == 0:
                 continue
-            mb.add_assumptions([read_expr(added)])
+            prover.add_assumptions([read_expr(added)])
 
-        # use mb.build_model([assumptions]) to print the input
-        model = mb.build_model()
+        proven = prover.prove()
+        if proven:
+            consistent = False
+            inconsistent_proof = prover.proof()
+            create_file("inconsistent_proof", inconsistent_proof, path)
+    else:
+        consistent = "inconclusive"
 
-        if model:
-            consistent = True
-            consistent_model = mb.model(format='cooked')
-            # print("o1 and o2 are consistent, here's the model constructed by mace: \n", consistent_model)
-            create_file("consistent_model", consistent_model, path)
     return consistent
 
 
-def entailment(lines_o1, lines_o2, path):
+def entailment(lines_t1, lines_t2, path):
     saved_proofs = []
-    new_axioms = []
+    # new_axioms = []
     entail = 0
     counter_file_created = False
 
-    for c1, goal in enumerate(lines_o2):
-
+    for c1, goal in enumerate(lines_t2):
         # set first lines to use prover
-        assumptions = read_expr(lines_o1[0])
-
+        assumptions = read_expr(lines_t1[0])
         goals = read_expr(goal)
 
         prover = Prover9Command(goals, [assumptions])
 
         # add axioms into assumptions
-        for c, added in enumerate(lines_o1):
+        for c, added in enumerate(lines_t1):
             if c == 0:
                 continue
             prover.add_assumptions([read_expr(added)])
@@ -117,20 +120,16 @@ def entailment(lines_o1, lines_o2, path):
         # print("from p9, the goal: \n", prover.goal())
 
         proven = prover.prove()
-        # print("is there proof? ", proven)
-
         if proven & (entail == 0):
             get_proof = prover.proof()
             saved_proofs.append(get_proof)
-            # print(get_proof)
 
         elif proven is False:
             entail += 1
             # saved_proofs.clear()
 
-            # print("no entailment, here's a counterexample: ")
             mb = MaceCommand(goals, [assumptions])
-            for c, added in enumerate(lines_o1):
+            for c, added in enumerate(lines_t1):
                 if c == 0:
                     continue
                 mb.add_assumptions([read_expr(added)])
@@ -141,13 +140,12 @@ def entailment(lines_o1, lines_o2, path):
             # use mb.build_model([assumptions]) to print the input
             # is there a model?
             counterexample = mb.build_model()
-            new_axioms.append(mb.goal())
+            # new_axioms.append(mb.goal())
 
             if counterexample & (counter_file_created is False):
                 counterexample_model = mb.model(format='cooked')
                 create_file("counterexample_found", counterexample_model, path)
                 counter_file_created = True
-                # print("model constructed by mace, file created : \n", counterexample_model)
             # elif counterexample is False:
             #     print("no counterexample found for the axiom: \n", mb.goal())
 
@@ -160,24 +158,59 @@ def entailment(lines_o1, lines_o2, path):
         return True
 
 
-# xml syntax for .owl files
-def create_xml(t_1, rel, t_2, visual=False):
-    if visual:
-        l1 = "ObjectPropertyAssertion(:" + rel
-        l2 = " :" + t_1 + " :" + t_2 + ")\n\n"
-        return l1 + l2
-    else:
-        l1 = "# Individual: :" + t_1 + " (:" + t_1 + ")\n\n"
-        l2 = "ClassAssertion(:Theory :" + t_1 + ")\n\n"
+# update owl files
+def owl_update(t1, rel, t2, alt_file, meta_file):
+    l1 = "ObjectPropertyAssertion(:" + rel
+    l2 = " :" + t1 + " :" + t2 + ")\n\n"
+    syntax1 = l1 + l2
 
-        l3 = "# Individual: :" + t_2 + " (:" + t_2 + ")\n\n"
-        l4 = "ClassAssertion(:Theory :" + t_2 + ")\n"
+    f = open(alt_file, "r")
+    alt_lines = f.readlines()
+    f.close()
 
-        l5 = "ObjectPropertyAssertion(:" + rel + " :" + t_1 + " :" + t_2 + ")\n\n"
-        return l1 + l2 + l3 + l4 + l5
+    for c1 in range(len(alt_lines)-1, 0, -1):
+        if alt_lines[c1] != "":
+            alt_lines.insert(c1, syntax1)
+            break
+
+    f = open(alt_file, "w")
+    alt_string = "".join(alt_lines)
+    f.write(alt_string)
+    f.close()
+
+    l3 = "Declaration(NamedIndividual(:" + t1 + "))\n"
+
+    l4 = "# Individual: :" + t1 + " (:" + t1 + ")\n\n"
+    l5 = "ClassAssertion(:Theory :" + t1 + ")\n\n"
+
+    l6 = "# Individual: :" + t2 + " (:" + t2 + ")\n\n"
+    l7 = "ClassAssertion(:Theory :" + t2 + ")\n"
+
+    l8 = "ObjectPropertyAssertion(:" + rel + " :" + t1 + " :" + t2 + ")\n\n"
+    syntax2 = l4 + l5 + l6 + l7 + l8
+
+    f = open(meta_file, "r")
+    meta_lines = f.readlines()
+    f.close()
+
+    for c, l in enumerate(meta_lines):
+        if l3 in l:
+            break
+        elif "###" in l:
+            meta_lines.insert(c, l3)
+            break
+    for c1 in range(len(meta_lines)-1, 0, -1):
+        if meta_lines[c1] != "":
+            meta_lines.insert(c1, syntax2)
+            break
+
+    f = open(meta_file, "w")
+    meta_string = "".join(meta_lines)
+    f.write(meta_string)
+    f.close()
 
 
-def oracle(t1, lines_t1, t2, lines_t2, path, owl_file, owl_visual):
+def oracle(t1, lines_t1, t2, lines_t2, path, alt_file, meta_file):
     # consistent
     if consistency(lines_t1, lines_t2, path):
         o1_entails_o2 = entailment(lines_t1, lines_t2, path)
@@ -185,38 +218,58 @@ def oracle(t1, lines_t1, t2, lines_t2, path, owl_file, owl_visual):
 
         # equivalent
         if o1_entails_o2 & o2_entails_o1:
-            owl_file.write(create_xml(t1, "equivalent", t2))
-            owl_visual.write(create_xml(t1, "equivalent", t2, True))
+            owl_update(t1, "equivalent", t2, alt_file, meta_file)
             os.rename(path, "equivalent_" + t1 + "_" + t2)
             return "equivalent_t1_t2"
 
         # independent
         elif (o1_entails_o2 is False) & (o2_entails_o1 is False):
-            owl_file.write(create_xml(t1, "independent", t2))
-            owl_visual.write(create_xml(t1, "independent", t2, True))
+            owl_update(t1, "independent", t2, alt_file, meta_file)
             os.rename(path, "independent_" + t1 + "_" + t2)
             return "independent_t1_t2"
 
         # t1 entails t2
         elif o1_entails_o2:
-            owl_file.write(create_xml(t1, "entails", t2))
-            owl_visual.write(create_xml(t1, "entails", t2, True))
+            owl_update(t1, "entails", t2, alt_file, meta_file)
             os.rename(path, "entails_" + t1 + "_" + t2)
             return "entails_t1_t2"
 
         # t2 entails t1
         elif o2_entails_o1:
-            owl_file.write(create_xml(t2, "entails", t1))
-            owl_visual.write(create_xml(t2, "entails", t1, True))
+            owl_update(t2, "entails", t1, alt_file, meta_file)
             os.rename(path, "entails_" + t2 + "_" + t1)
             return "entails_t2_t1"
 
     # inconsistent
     elif consistency(lines_t1, lines_t2, path) is False:
-        owl_file.write(create_xml(t1, "inconsistent", t2))
-        owl_visual.write(create_xml(t1, "inconsistent", t2, True))
+        owl_update(t1, "inconsistent", t2, alt_file, meta_file)
         os.rename(path, "inconsistent_" + t1 + "_" + t2)
         return "inconsistent_t1_t2"
+
+
+def check(meta_file, t1, t2):
+    # check if relationship has been found already
+    possible = ["inconsistent",
+                "entails",
+                "independent",
+                "equivalent"]
+
+    with open(meta_file, "r") as file3:
+        all_relations = file3.readlines()
+        for r in all_relations:
+            for p in possible:
+                if "ObjectPropertyAssertion(:" + p + " :" + t1 + " :" + t2 + ")" in r:
+                    print("ObjectPropertyAssertion(:" + p + " :" + t1 + " :" + t2 + ")")
+                    relationship = p + "_t1_t2"
+                    file3.close()
+                    return relationship
+                elif "ObjectPropertyAssertion(:" + p + " :" + t2 + " :" + t1 + ")" in r:
+                    print("ObjectPropertyAssertion(:" + p + " :" + t2 + " :" + t1 + ")")
+                    relationship = p + "_t2_t1"
+                    file3.close()
+                    return relationship
+    file3.close()
+    return "nf"
 
 
 # main program
@@ -230,50 +283,32 @@ def main_program(t1, t2):
     t1 = t1.replace(".in", "")
     t2 = t2.replace(".in", "")
 
-    # check if relationship has been found already
-    possible = ["inconsistent",
-                "entails",
-                "independent",
-                "equivalent"]
+    alt_file = "alt-metatheory.owl"
+    meta_file = "metatheory.owl"
 
-    with open("metatheory.owl", "r") as file3:
-        all_relations = file3.readlines()
+    check_rel = check(meta_file, t1, t2)
 
-    for r in all_relations:
-        for p in possible:
-            if "ObjectPropertyAssertion(:" + p + " :" + t1 + " :" + t2 + ")" in r:
-                relationship = p + "_t1_t2"
-                file3.close()
-                return relationship
-            elif "ObjectPropertyAssertion(:" + p + " :" + t2 + " :" + t1 + ")" in r:
-                relationship = p + "_t2_t1"
-                file3.close()
-                return relationship
-    file3.close()
+    if check_rel == "nf":
+        new_dir = t1 + "_" + t2
+        if not os.path.exists(new_dir):
+            os.mkdir(new_dir)
 
-    # if not found in .owl file, create a new directory for this pair of theories
-    owl_file = open("metatheory.owl", "a+")
-    owl_visual = open("alt-metatheory.owl", "a+")
+        lines_t1 = concatenate_axioms(lines_t1)
+        lines_t2 = concatenate_axioms(lines_t2)
+        replace_symbol(lines_t1, ".\n", "")
+        replace_symbol(lines_t1, "\t", "")
+        replace_symbol(lines_t2, ".\n", "")
+        replace_symbol(lines_t2, "\t", "")
 
-    new_dir = t1 + "_" + t2
-    if not os.path.exists(new_dir):
-        os.mkdir(new_dir)
+        relationship = oracle(t1, lines_t1, t2, lines_t2, new_dir, alt_file, meta_file)
 
-    lines_t1 = concatenate_axioms(lines_t1)
-    lines_t2 = concatenate_axioms(lines_t2)
-    replace_symbol(lines_t1, ".\n", "")
-    replace_symbol(lines_t1, "\t", "")
-    replace_symbol(lines_t2, ".\n", "")
-    replace_symbol(lines_t2, "\t", "")
-
-    relationship = oracle(t1, lines_t1, t2, lines_t2, new_dir, owl_file, owl_visual)
+    else:
+        relationship = check_rel
 
     file1.close()
     file2.close()
-    owl_file.close()
-    owl_visual.close()
 
     return relationship
 
 
-# print(main_program("bet.in", "altwegg.in"))
+# print(main_program("sigma.in", "weak_fishburn.in"))
