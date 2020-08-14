@@ -33,43 +33,74 @@ def make_inequalities(unique_constants):
     for pair in pairs:
         s = pair[0] + "!=" + pair[1] + ".\n"
         statements.append(s)
-    # print(statements)
     return statements
 
 
-def find_position(chain, mod, low, high):
+def model_setup(file_name):
+
+    with open(file_name, "r+") as f:
+        lines = f.readlines()
+        input1 = (extract_constants(lines))
+        add_these_lines = make_inequalities(input1)
+        for line in add_these_lines:
+            f.write(line)
+    f.close()
+
+    with open(file_name, "r") as f:
+        model_spec_lines = f.readlines()
+        # remove comments
+        for x, line in enumerate(model_spec_lines):
+            while "%" in model_spec_lines[x]:
+                model_spec_lines.remove(model_spec_lines[x])
+        try:
+            while True:
+                model_spec_lines.remove("\n")
+        except ValueError:
+            pass
+        relationship.replace_symbol(model_spec_lines, ".\n", "")
+        relationship.replace_symbol(model_spec_lines, "\t", "")
+    f.close()
+    return model_spec_lines
+
+
+def find_position(chain, model_lines, low, high):
     if low == high:
-        compare_low = relationship.consistency(mod, chain[low])
+        low_lines = relationship.theory_setup(chain[low])
+        compare_low = relationship.consistency(model_lines, low_lines)
         if compare_low is True:
             return low + 1
         # take out inconclusive??
-        elif compare_low is False:
+        elif compare_low is not True:
             return low
 
     if low > high:
         return low
 
     mid = (low+high)//2
-    compare_mid = relationship.consistency(mod, chain[mid])
+    mid_lines = relationship.theory_setup(chain[mid])
+    compare_mid = relationship.consistency(model_lines, mid_lines)
 
     # lower half
-    if compare_mid is False:
-        return find_position(chain, mod, low, mid-1)
+    if compare_mid is not True:
+        return find_position(chain, model_lines, low, mid-1)
     # upper half
     elif compare_mid is True:
-        return find_position(chain, mod, mid+1, high)
+        return find_position(chain, model_lines, mid+1, high)
     # does not belong "inconclusive"
     else:
         return -1
 
 
-def search(in_chain, new_t):
-    location = find_position(in_chain, new_t, 0, len(in_chain)-1)
+def search(in_chain, model_lines):
+    location = find_position(in_chain, model_lines, 0, len(in_chain)-1)
+    print(location)
     if location != -1:
+        print("hello", in_chain)
+
         if location < len(in_chain)-1:
             return [in_chain[location], in_chain[location+1]]
         elif location == len(in_chain)-1:
-            return [in_chain(location)]
+            return [in_chain[location]]
     else:
         return -1
 
@@ -84,41 +115,21 @@ def main(csv_file, model_file):
         chains_list[i] = list(filter(lambda a: pd.notna(a), c))
     input_chains = [[str(s) + ".in" for s in c] for c in chains_list]
 
-    for i, c in enumerate(chains_list):
-        chains_list[i] = list(filter(lambda a: pd.notna(a), c))
-    input_chains = [[str(s) + ".in" for s in c] for c in chains_list]
+    model_spec_lines = model_setup(model_file)
 
-    with open(model_file, "r+") as f:
-        lines = f.readlines()
-
-        input1 = (extract_constants(lines))
-        add_these_lines = make_inequalities(input1)
-
-        for line in add_these_lines:
-            f.write(line)
-    f.close()
-
-    f = open(model_file, "r")
-    model_spec_lines = f.readlines()
-    relationship.replace_symbol(model_spec_lines, ".\n", "")
-    relationship.replace_symbol(model_spec_lines, "\t", "")
-
-    x = []
-
+    closest_theories = []
     for i, chain in enumerate(chains_list):
-        condition = relationship.consistency(model_spec_lines, chain[0] + ".in")
+        theory_lines = relationship.theory_setup(chain[0] + ".in")
+        condition = relationship.consistency(model_spec_lines, theory_lines)
         if condition is not True:
             continue
         else:
-            item = search(input_chains[i], model_file)
+            item = search(input_chains[i], model_spec_lines)
             if item != -1:
-                x.extend(item)
-            closest_theories = list(set(x))
+                closest_theories.append(item)
             print("closest theories are: ", closest_theories)
-
-    f.close()
 
     print("done")
 
 
-main("anti_strict_model_spec.in")
+main("between.csv", "anti_strict_model_spec.in")
