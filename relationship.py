@@ -1,6 +1,5 @@
 from nltk import *
 import os
-import re
 
 from nltk.sem import Expression
 
@@ -13,19 +12,9 @@ read_expr = Expression.fromstring
 
 def concatenate_axioms(lines):
     # remove specific lines
-    lines.remove("formulas(assumptions).\n")
-    lines.remove("end_of_list.\n")
-
-    # remove comments
-    for x, line in enumerate(lines):
-        while "%" in lines[x]:
-            lines.remove(lines[x])
-
-    try:
-        while True:
-            lines.remove("\n")
-    except ValueError:
-        pass
+    [lines.remove(x) for x in lines if "formulas(assumptions)" in x]
+    # [lines.remove("formulas(assumptions).\n") if "formulas(assumptions).\n" in lines else lines=lines]
+    [lines.remove(y) for y in lines if "end_of_list" in y]
 
     # put axioms together into one list
     index_last_line = []
@@ -53,13 +42,33 @@ def replace_symbol(lines, symbol, new_symbol):
     return lines
 
 
+def theory_setup(theory_name):
+    with open(theory_name, "r") as f:
+        lines = f.readlines()
+        lines = concatenate_axioms(lines)
+        # remove comments
+        for x, line in enumerate(lines):
+            while "%" in lines[x]:
+                lines.remove(lines[x])
+
+        try:
+            while True:
+                lines.remove("\n")
+        except ValueError:
+            pass
+        replace_symbol(lines, ".\n", "")
+        replace_symbol(lines, "\t", "")
+    f.close()
+    return lines
+
+
 def create_file(name, contents, path):
     new_path = os.path.join(path, name)
     with open(new_path, "w+") as new_file:
         new_file.write(contents)
 
 
-def consistency(lines_t1, lines_t2, path):
+def consistency(lines_t1, lines_t2, path=None):
     lines = lines_t1 + lines_t2
     assumptions = read_expr(lines[0])
 
@@ -72,11 +81,11 @@ def consistency(lines_t1, lines_t2, path):
 
     # use mb.build_model([assumptions]) to print the input
     model = mb.build_model()
-    # print("model", model)
     if model:
         consistent = True
         consistent_model = mb.model(format='cooked')
-        create_file("consistent_model", consistent_model, path)
+        if path:
+            create_file("consistent_model", consistent_model, path)
 
     elif model is False:
         # up to 3 minutes
@@ -90,14 +99,15 @@ def consistency(lines_t1, lines_t2, path):
         if proven:
             consistent = False
             inconsistent_proof = prover.proof()
-            create_file("inconsistent_proof", inconsistent_proof, path)
+            if path:
+                create_file("inconsistent_proof", inconsistent_proof, path)
     else:
+        print("hey")
         consistent = "inconclusive"
-
     return consistent
 
 
-def entailment(lines_t1, lines_t2, path):
+def entailment(lines_t1, lines_t2, path=None):
     saved_proofs = []
     # new_axioms = []
     entail = 0
@@ -144,7 +154,8 @@ def entailment(lines_t1, lines_t2, path):
 
             if counterexample & (counter_file_created is False):
                 counterexample_model = mb.model(format='cooked')
-                create_file("counterexample_found", counterexample_model, path)
+                if path:
+                    create_file("counterexample_found", counterexample_model, path)
                 counter_file_created = True
             # elif counterexample is False:
             #     print("no counterexample found for the axiom: \n", mb.goal())
@@ -153,8 +164,9 @@ def entailment(lines_t1, lines_t2, path):
         # create_file("remaining_axioms", new_axioms, path)
         return False
     else:
-        for c, proof in enumerate(saved_proofs):
-            create_file("proof" + str(c + 1), proof, path)
+        if path:
+            for c, proof in enumerate(saved_proofs):
+                create_file("proof" + str(c + 1), proof, path)
         return True
 
 
@@ -210,7 +222,7 @@ def owl_update(t1, rel, t2, alt_file, meta_file):
     f.close()
 
 
-def oracle(t1, lines_t1, t2, lines_t2, path, alt_file, meta_file):
+def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None):
     # consistent
     if consistency(lines_t1, lines_t2, path):
         o1_entails_o2 = entailment(lines_t1, lines_t2, path)
@@ -219,31 +231,36 @@ def oracle(t1, lines_t1, t2, lines_t2, path, alt_file, meta_file):
         # equivalent
         if o1_entails_o2 & o2_entails_o1:
             owl_update(t1, "equivalent", t2, alt_file, meta_file)
-            os.rename(path, "equivalent_" + t1 + "_" + t2)
+            if path:
+                os.rename(path, "equivalent_" + t1 + "_" + t2)
             return "equivalent_t1_t2"
 
         # independent
         elif (o1_entails_o2 is False) & (o2_entails_o1 is False):
             owl_update(t1, "independent", t2, alt_file, meta_file)
-            os.rename(path, "independent_" + t1 + "_" + t2)
+            if path:
+                os.rename(path, "independent_" + t1 + "_" + t2)
             return "independent_t1_t2"
 
         # t1 entails t2
         elif o1_entails_o2:
             owl_update(t1, "entails", t2, alt_file, meta_file)
-            os.rename(path, "entails_" + t1 + "_" + t2)
+            if path:
+                os.rename(path, "entails_" + t1 + "_" + t2)
             return "entails_t1_t2"
 
         # t2 entails t1
         elif o2_entails_o1:
             owl_update(t2, "entails", t1, alt_file, meta_file)
-            os.rename(path, "entails_" + t2 + "_" + t1)
+            if path:
+                os.rename(path, "entails_" + t2 + "_" + t1)
             return "entails_t2_t1"
 
     # inconsistent
     elif consistency(lines_t1, lines_t2, path) is False:
         owl_update(t1, "inconsistent", t2, alt_file, meta_file)
-        os.rename(path, "inconsistent_" + t1 + "_" + t2)
+        if path:
+            os.rename(path, "inconsistent_" + t1 + "_" + t2)
         return "inconsistent_t1_t2"
 
 
@@ -273,12 +290,12 @@ def check(meta_file, t1, t2):
 
 
 # main program
-def main_program(t1, t2):
-    with open(t1, "r") as file1:
-        lines_t1 = file1.readlines()
-
-    with open(t2, "r") as file2:
-        lines_t2 = file2.readlines()
+def main(t1, t2, file=False):
+    # with open(t1, "r") as file1:
+    #     lines_t1 = file1.readlines()
+    #
+    # with open(t2, "r") as file2:
+    #     lines_t2 = file2.readlines()
 
     t1 = t1.replace(".in", "")
     t2 = t2.replace(".in", "")
@@ -289,26 +306,21 @@ def main_program(t1, t2):
     check_rel = check(meta_file, t1, t2)
 
     if check_rel == "nf":
-        new_dir = t1 + "_" + t2
-        if not os.path.exists(new_dir):
-            os.mkdir(new_dir)
+        if file:
+            new_dir = t1 + "_" + t2
+            if not os.path.exists(new_dir):
+                os.mkdir(new_dir)
+        else:
+            new_dir = None
 
-        lines_t1 = concatenate_axioms(lines_t1)
-        lines_t2 = concatenate_axioms(lines_t2)
-        replace_symbol(lines_t1, ".\n", "")
-        replace_symbol(lines_t1, "\t", "")
-        replace_symbol(lines_t2, ".\n", "")
-        replace_symbol(lines_t2, "\t", "")
+        lines_t1 = theory_setup(t1 + ".in")
+        lines_t2 = theory_setup(t2 + ".in")
 
-        relationship = oracle(t1, lines_t1, t2, lines_t2, new_dir, alt_file, meta_file)
-
+        relationship = oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, new_dir)
     else:
         relationship = check_rel
-
-    file1.close()
-    file2.close()
 
     return relationship
 
 
-# print(main_program("sigma.in", "weak_fishburn.in"))
+# print(main("betweenness.in", "linearity.in"))
