@@ -1,8 +1,7 @@
-# accepts file with model specification
-# extract constants
-# add inequalities for each pair of constants
-# insert that as a theory
-# return the "closest existing theory"
+'''
+ August 2020
+ By Amanda Chow
+'''
 
 import pandas as pd
 import relationship
@@ -19,25 +18,22 @@ def extract_constants(lines):
 
 
 def make_inequalities(unique_constants):
-    # num_pairs = (len(unique_constants)*(len(unique_constants)-1))/2
     pairs = []
 
     # find all unique pairs
     for i in range(0, len(unique_constants)-1, 1):
         for j in range(i+1, len(unique_constants), 1):
             pairs.append([unique_constants[i], unique_constants[j]])
-    # print(pairs)
 
-    # create list of statements with the pairs
+    # create list of inequality statements with the pairs
     statements = []
     for pair in pairs:
-        s = pair[0] + "!=" + pair[1] + ".\n"
+        s = "\n" + pair[0] + "!=" + pair[1] + ".\n"
         statements.append(s)
     return statements
 
 
 def model_setup(file_name):
-
     with open(file_name, "r+") as f:
         lines = f.readlines()
         input1 = (extract_constants(lines))
@@ -64,14 +60,17 @@ def model_setup(file_name):
 
 
 def find_position(chain, model_lines, low, high):
+    # returns greatest position # of consistent theory
     if low == high:
         low_lines = relationship.theory_setup(chain[low])
         compare_low = relationship.consistency(model_lines, low_lines)
         if compare_low is True:
-            return low + 1
-        # take out inconclusive??
-        elif compare_low is not True:
+            print("consistent with ", chain[low])
             return low
+        elif compare_low is False:
+            print("inconsistent with ", chain[low])
+            # the return value will be -1 if it is inconsistent with the first theory
+            return low - 1
 
     if low > high:
         return low
@@ -81,21 +80,23 @@ def find_position(chain, model_lines, low, high):
     compare_mid = relationship.consistency(model_lines, mid_lines)
 
     # lower half
-    if compare_mid is not True:
+    if compare_mid is False:
+        print("inconsistent with ", chain[mid])
         return find_position(chain, model_lines, low, mid-1)
     # upper half
     elif compare_mid is True:
+        print("consistent with ", chain[mid])
         return find_position(chain, model_lines, mid+1, high)
     # does not belong "inconclusive"
     else:
+        print("inconclusive")
         return -1
 
 
 def search(in_chain, model_lines):
     location = find_position(in_chain, model_lines, 0, len(in_chain)-1)
-    print(location)
     if location != -1:
-        print("hello", in_chain)
+        print("chain: ", in_chain)
 
         if location < len(in_chain)-1:
             return [in_chain[location], in_chain[location+1]]
