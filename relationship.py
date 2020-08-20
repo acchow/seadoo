@@ -1,7 +1,6 @@
 '''
  August 2020
  By Amanda Chow
- This program finds the relationship between two theories
 '''
 
 from nltk import *
@@ -323,5 +322,4 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-
 # print(main("betweenness.in", "betweenness.in"))
