@@ -1,13 +1,13 @@
+'''
+ August 2020
+ By Amanda Chow
+'''
+
 from nltk import *
 import os
 
 from nltk.sem import Expression
-
 read_expr = Expression.fromstring
-
-# -------------------------
-# this program finds the relationship between two ontologies/theories
-# -------------------------
 
 
 def concatenate_axioms(lines):
@@ -276,12 +276,12 @@ def check(meta_file, t1, t2):
         for r in all_relations:
             for p in possible:
                 if "ObjectPropertyAssertion(:" + p + " :" + t1 + " :" + t2 + ")" in r:
-                    print("ObjectPropertyAssertion(:" + p + " :" + t1 + " :" + t2 + ")")
+                    # print("ObjectPropertyAssertion(:" + p + " :" + t1 + " :" + t2 + ")")
                     relationship = p + "_t1_t2"
                     file3.close()
                     return relationship
                 elif "ObjectPropertyAssertion(:" + p + " :" + t2 + " :" + t1 + ")" in r:
-                    print("ObjectPropertyAssertion(:" + p + " :" + t2 + " :" + t1 + ")")
+                    # print("ObjectPropertyAssertion(:" + p + " :" + t2 + " :" + t1 + ")")
                     relationship = p + "_t2_t1"
                     file3.close()
                     return relationship
@@ -291,11 +291,6 @@ def check(meta_file, t1, t2):
 
 # main program
 def main(t1, t2, file=False):
-    # with open(t1, "r") as file1:
-    #     lines_t1 = file1.readlines()
-    #
-    # with open(t2, "r") as file2:
-    #     lines_t2 = file2.readlines()
 
     t1 = t1.replace(".in", "")
     t2 = t2.replace(".in", "")
@@ -323,4 +318,7 @@ def main(t1, t2, file=False):
     return relationship
 
 
-# print(main("betweenness.in", "linearity.in"))
+# t1 = input("enter theory 1:")
+# t2 = input("enter theory 2:")
+# print(main(t1, t2))
+# print(main("betweenness.in", "weak_between.in"))

@@ -59,8 +59,8 @@ def model_setup(file_name):
     return model_spec_lines
 
 
+# returns greatest position # of consistent theory
 def find_position(chain, model_lines, low, high):
-    # returns greatest position # of consistent theory
     if low == high:
         low_lines = relationship.theory_setup(chain[low])
         compare_low = relationship.consistency(model_lines, low_lines)
