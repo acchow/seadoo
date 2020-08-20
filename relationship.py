@@ -1,6 +1,7 @@
 '''
  August 2020
  By Amanda Chow
+ This program finds the relationship between two theories
 '''
 
 from nltk import *
@@ -230,9 +231,10 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None):
 
         # equivalent
         if o1_entails_o2 & o2_entails_o1:
-            owl_update(t1, "equivalent", t2, alt_file, meta_file)
-            if path:
-                os.rename(path, "equivalent_" + t1 + "_" + t2)
+            if t1 != t2:
+                owl_update(t1, "equivalent", t2, alt_file, meta_file)
+                if path:
+                    os.rename(path, "equivalent_" + t1 + "_" + t2)
             return "equivalent_t1_t2"
 
         # independent
@@ -321,4 +323,5 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-# print(main("betweenness.in", "weak_between.in"))
+
+# print(main("betweenness.in", "betweenness.in"))

@@ -1,6 +1,7 @@
 '''
  August 2020
  By Amanda Chow
+ This program searches for the closest matching theories given a model specification
 '''
 
 import pandas as pd

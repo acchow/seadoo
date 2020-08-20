@@ -1,10 +1,13 @@
 '''
  August 2020
  By Amanda Chow
+ This program either inserts a new theory to a chain decomposition
+ or searches for an equivalent theory
 '''
 
 import relationship
 import pandas as pd
+import os
 
 
 def find_position(chain, new_t, low, high, insert=False):
@@ -112,5 +115,13 @@ def main(csv_file, new_t, function):
         print("chain decomposition is now updated")
 
 
+def complete_insertion(csv_file):
+    for file_name in os.listdir():
+        if file_name.endswith(".in"):
+            print(file_name)
+            main(csv_file, file_name, 1)
+
+
 # 1 for insert, 2 for search
-main("between.csv", "bet_du.in", 1)
+# main("between.csv", "linear_bet.in", 1)
+# complete_insertion("between.csv")
