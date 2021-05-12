@@ -6,6 +6,7 @@ extend to include multiple examples, and then also check multiple counterexample
 
 import pandas as pd
 import relationship
+import os
 
 
 #extract the constants from the model
@@ -121,7 +122,7 @@ def find_theories(csv_file, model_file):
 
     model_spec_lines = model_setup(model_file)
 
-    closest_theories = []
+    closest_theories = set()
     for i, chain in enumerate(chains_list):
         theory_lines = relationship.theory_setup(chain[0] + ".in")
         condition = relationship.consistency(model_spec_lines, theory_lines)
@@ -130,7 +131,7 @@ def find_theories(csv_file, model_file):
         else:
             item = search(input_chains[i], model_spec_lines)
             if item != -1:
-                closest_theories.append(item)
+                closest_theories.update(item)
             print("closest theories are: ", closest_theories)
 
     #print
@@ -142,31 +143,29 @@ def find_theories(csv_file, model_file):
 def main(csv_file):
 
     #complete set of closest theories for every example provided
-    #if we do it this way - we won't know from which chains they're from
-    #previously: [['shepperd.in'], ['weak_between.in', 'strong_between.in'], ['betweenness.in', 'finite_pambuccian.in'],
     complete_set_theories = set()
 
-    #takes all examples with file name ending in .in (naming convention?)
-    #ideas - naming convention (preferred) , csv with lists of ex/counterexamples, user input in console
+    #examples - finding all theories that are consistent with them
     for ex_file in os.listdir():
-        if ex_file.endswith(".in"):
+        # takes files specified as examples using suffix _ex.in
+        if ex_file.endswith("_ex.in"):
             print(ex_file)
-
             # find closest theories for each individual example, add to complete set
             complete_set_theories.update(find_theories(csv_file, ex_file))
 
-    #counterexamples - checking that each is inconsistent with the theories
+    #counterexamples - making sure all theories found so far are inconsistent with them
     for counter_ex_file in os.listdir():
-
-        #naming convention for counterexamples - or should we ask the user to list them (that might be a hassle)
-        if counter_ex_file.endswith(".in"):
-            model_setup(counter_ex_file)
+        # takes files specified as counterexamples using suffix _cex.in
+        if counter_ex_file.endswith("_cex.in"):
+            model_spec_lines = model_setup(counter_ex_file)
+            print(model_spec_lines)
             for t in complete_set_theories:
                 theory_lines = relationship.theory_setup(t)
-                condition = relationship.consistency(model_spec_lines, theory_lines)
 
+                print(t, ":", theory_lines)
+                condition = relationship.consistency(model_spec_lines, theory_lines)
                 #found a theory that is consistent with the counterexample. remove the theory
-                if condition is not True:
+                if condition:
                     complete_set_theories.remove(t)
 
-#main("semilinear-orderings.csv", "branching.in")
+main("semilinear-orderings.csv")
