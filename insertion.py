@@ -111,7 +111,7 @@ def main(csv_file, new_t, function):
         print("here is the final list \n", chains_list)
 
         new_df = pd.DataFrame(chains_list)
-        new_df.to_csv("between.csv", mode="w", index=False)
+        new_df.to_csv(csv_file, mode="w", index=False)
         print("chain decomposition is now updated")
 
 
@@ -123,5 +123,5 @@ def complete_insertion(csv_file):
 
 
 # 1 for insert, 2 for search
-# main("between.csv", "linear_bet.in", 1)
-# complete_insertion("between.csv")
+#main("semilinear-orderings.csv", "quasiorder.in", 1)
+#complete_insertion("between.csv")
