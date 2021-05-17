@@ -143,12 +143,12 @@ def main(csv_file, new_t, function):
                 #try starting a new chain with select theories contained in chain
                 else:
                     new_chain = start_new_chain(chain, input_chains[i], new_t)
-                    if new_chain:
+                    if new_chain and (new_chain not in chains_list):
+                        print("hello")
                         chains_list.append(new_chain)
                         print(chains_list)
 
                         new_chain = [str(c) + ".in" for c in new_chain]
-
                         input_chains.append(new_chain)
                         inserted = True
                 #some_t = new_t.replace(".in", "")
@@ -180,5 +180,5 @@ def complete_insertion(csv_file):
 
 
 # 1 for insert, 2 for search
-main("semilinear-orderings.csv", "lower_bound.in", 1)
+main("semilinear-orderings.csv", "dual_branching.in", 1)
 #complete_insertion("between.csv")
