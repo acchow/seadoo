@@ -67,25 +67,24 @@ def insertion(chain, in_chain, new_t):
 
 
 def start_new_chain(chain, in_chain, new_t):
-    rel = "entails_t2_t1"
-    i = len(in_chain)
 
-    while rel == "entails_t2_t1" & i > 0:   #won't go all the way to 0, already checked that it's independent
-        i-=1
-        rel = relationship.main(new_t, in_chain[i], True)
-
-    #independent with the final theory
-    if i == len(in_chain)-1:
-        return []
-    #slice and copy the subsequent theories and add to a new chain
-    else:
-        new_t = new_t.replace(".in", "")
-        new_chain = [new_t]
-        for t in chain[i:]:
-            new_chain.append(t)
-        return new_chain
+    new_chain = []
+    top = []       #theories that entail theory
+    bottom = []    #theories entailed by new theory
 
 
+    for i, t in enumerate(in_chain):
+        rel = relationship.main(new_t, t, True)
+        if rel == "entails_t1_t2":
+            bottom.append(chain[i])
+        elif rel == "entails_t2_t1":
+            top.append(chain[i])
+
+    new_t = new_t.replace(".in", "")
+    if bottom or top:
+        new_chain = bottom + [new_t] + top
+
+    return new_chain
 
 
 
@@ -95,12 +94,6 @@ def search(in_chain, new_t):
         print("an equivalent theory is ", location)
     else:
         print("no equivalent theory found")
-
-
-
-
-
-
 
 
 def main(csv_file, new_t, function):
@@ -126,40 +119,51 @@ def main(csv_file, new_t, function):
     relationship.replace_symbol(lines, "\t", "")
     check_consistent = relationship.consistency(lines, [])
 
+
+
     if check_consistent is not True:
         print("your theory is inconsistent")
     else:
+
+        num_chains_start = len(chains_list)
+
         # update each chain
-        for i, chain in enumerate(chains_list):
-            condition = relationship.main(new_t, chain[0] + ".in")
+        for i, chain in enumerate(chains_list[:num_chains_start]):
+            #condition = relationship.main(new_t, chain[0] + ".in")
 
             # skip the chain if inconsistent
-            if "inconsistent" in condition:
-                continue
-
-            #see if we can start a new chain with subsequent theories if independent
-            elif "independent" in condition and function == 1:
-                new_chain = start_new_chain(chain, input_chains[i], new_t)
-                if new_chain:
-                    chains_list.append(new_chain)
+            #if "inconsistent" in condition:
+                #continue
+            #else:
+            if function == 1:   #insertion
+                #regular insertion
+                if insertion(chain, input_chains[i], new_t):
                     inserted = True
 
-            else:
-                if function == 1:   #insertion
-                    if insertion(chain, input_chains[i], new_t):
+                #try starting a new chain with select theories contained in chain
+                else:
+                    new_chain = start_new_chain(chain, input_chains[i], new_t)
+                    if new_chain:
+                        chains_list.append(new_chain)
+                        print(chains_list)
+
+                        new_chain = [str(c) + ".in" for c in new_chain]
+
+                        input_chains.append(new_chain)
                         inserted = True
-                    #some_t = new_t.replace(".in", "")
-                    #if some_t in new_chain:
-                     #   inserted = True
-                    #print(inserted)
+                #some_t = new_t.replace(".in", "")
+                #if some_t in new_chain:
+                 #   inserted = True
+                #print(inserted)
 
-                elif function == 2: #search for an equivalent theory
-                    print(search(input_chains[i], new_t))
-                    inserted = True
+            elif function == 2: #search for an equivalent theory
+                print(search(input_chains[i], new_t))
+                inserted = True
 
         if inserted is False: # new theory has not been inserted anywhere. create a new chain
             new_t = new_t.replace(".in", "")
             chains_list.append([new_t])
+            input_chains.append([new_t + ".in"])
 
         print("here is the final list \n", chains_list)
 
