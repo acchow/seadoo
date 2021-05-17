@@ -73,7 +73,7 @@ def consistency(lines_t1, lines_t2, path=None):
     assumptions = read_expr(lines[0])
 
     # set max number of models 50 (otherwise times out)
-    mb = MaceCommand(None, [assumptions], 5)
+    mb = MaceCommand(None, [assumptions], max_models=50)
     for c, added in enumerate(lines):
         if c == 0:
             continue
@@ -81,6 +81,8 @@ def consistency(lines_t1, lines_t2, path=None):
 
     # use mb.build_model([assumptions]) to print the input
     model = mb.build_model()
+    consistent = False
+
     if model:
         consistent = True
         consistent_model = mb.model(format='cooked')
@@ -98,16 +100,14 @@ def consistency(lines_t1, lines_t2, path=None):
         try:
             proven = prover.prove()
         except Exception:
-            return False
+            consistent = "inconclusive"     #no model and no proof
 
         if proven:
             consistent = False
             inconsistent_proof = prover.proof()
             if path:
                 create_file("inconsistent_proof", inconsistent_proof, path)
-    else:
-        print("hey")
-        consistent = "inconclusive"
+
     return consistent
 
 
@@ -125,9 +125,9 @@ def entailment(lines_t1, lines_t2, path=None):
         prover = Prover9Command(goals, [assumptions], timeout = 30)
 
         # add axioms into assumptions
-        for c, added in enumerate(lines_t1):
-            if c == 0:
-                continue
+        for c, added in enumerate(lines_t1[1:]):
+            #if c == 0:
+             #   continue
             prover.add_assumptions([read_expr(added)])
 
         # print("from prover9, assumptions: \n", prover.assumptions())
@@ -136,7 +136,7 @@ def entailment(lines_t1, lines_t2, path=None):
         try:
             proven = prover.prove()
         except Exception:
-            return False
+            proof_timeout = True
 
         if proven & (entail == 0):
             get_proof = prover.proof()
@@ -146,10 +146,10 @@ def entailment(lines_t1, lines_t2, path=None):
             entail += 1
             # saved_proofs.clear()
 
-            mb = MaceCommand(goals, [assumptions])
-            for c, added in enumerate(lines_t1):
-                if c == 0:
-                    continue
+            mb = MaceCommand(goals, [assumptions], max_models=50)
+            for c, added in enumerate(lines_t1[1:]):
+                #if c == 0:
+                 #   continue
                 mb.add_assumptions([read_expr(added)])
 
             # print("from mace, assumptions: \n", mb.assumptions())
@@ -160,11 +160,18 @@ def entailment(lines_t1, lines_t2, path=None):
             counterexample = mb.build_model()
             # new_axioms.append(mb.goal())
 
-            if counterexample & (counter_file_created is False):
+
+            if counterexample is False and proof_timeout:
+                return "inconclusive"
+
+
+            elif counterexample & (counter_file_created is False):
                 counterexample_model = mb.model(format='cooked')
                 if path:
                     create_file("counterexample_found", counterexample_model, path)
                 counter_file_created = True
+                proof_timeout = False       #reset to false
+
             # elif counterexample is False:
             #     print("no counterexample found for the axiom: \n", mb.goal())
 
@@ -232,9 +239,23 @@ def owl_update(t1, rel, t2, alt_file, meta_file):
 
 def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None):
     # consistent
-    if consistency(lines_t1, lines_t2, path):
+    consistent = consistency(lines_t1, lines_t2, path)
+    if consistent == "inconclusive":
+        owl_update(t1, "inconclusive_", t2, alt_file, meta_file)
+        #do we want to save any proofs for other axioms if it came out inconclusive?
+        return "inconclusive_t1_t2"
+
+    elif consistent:
         o1_entails_o2 = entailment(lines_t1, lines_t2, path)
         o2_entails_o1 = entailment(lines_t2, lines_t1, path)
+
+        # consistent with inconclusive entailment
+        #if only one is true, does that count as one-sided entailment???
+        if o1_entails_o2 == "inconclusive" or o2_entails_o1 == "inconclusive":
+            owl_update(t1, "consistent", t2, alt_file, meta_file)
+            if path:
+                os.rename(path, "consistent_" + t1 + "_" + t2)
+            return "consistent_t1_t2"
 
         # equivalent
         if o1_entails_o2 & o2_entails_o1:
@@ -266,7 +287,7 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None):
             return "entails_t2_t1"
 
     # inconsistent
-    elif consistency(lines_t1, lines_t2, path) is False:
+    elif consistent is False:
         owl_update(t1, "inconsistent", t2, alt_file, meta_file)
         if path:
             os.rename(path, "inconsistent_" + t1 + "_" + t2)
@@ -275,7 +296,9 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None):
 
 def check(meta_file, t1, t2):
     # check if relationship has been found already
-    possible = ["inconsistent",
+    possible = ["inconclusive",
+                "consistent",
+                "inconsistent",
                 "entails",
                 "independent",
                 "equivalent"]
@@ -330,4 +353,4 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-#print(main("semilinear_ordering.in", "quasiorder.in"))
+#print(main("dual_branching.in", "weak_upper_separative.in"))
