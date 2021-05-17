@@ -89,13 +89,17 @@ def consistency(lines_t1, lines_t2, path=None):
 
     elif model is False:
         # up to 3 minutes
-        prover = Prover9Command(None, [assumptions], 30)
+        prover = Prover9Command(None, [assumptions], timeout=30)
         for c, added in enumerate(lines):
             if c == 0:
                 continue
             prover.add_assumptions([read_expr(added)])
 
-        proven = prover.prove()
+        try:
+            proven = prover.prove()
+        except Exception:
+            return False
+
         if proven:
             consistent = False
             inconsistent_proof = prover.proof()
@@ -118,7 +122,7 @@ def entailment(lines_t1, lines_t2, path=None):
         assumptions = read_expr(lines_t1[0])
         goals = read_expr(goal)
 
-        prover = Prover9Command(goals, [assumptions])
+        prover = Prover9Command(goals, [assumptions], timeout = 30)
 
         # add axioms into assumptions
         for c, added in enumerate(lines_t1):
@@ -129,7 +133,11 @@ def entailment(lines_t1, lines_t2, path=None):
         # print("from prover9, assumptions: \n", prover.assumptions())
         # print("from p9, the goal: \n", prover.goal())
 
-        proven = prover.prove()
+        try:
+            proven = prover.prove()
+        except Exception:
+            return False
+
         if proven & (entail == 0):
             get_proof = prover.proof()
             saved_proofs.append(get_proof)
@@ -322,4 +330,4 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-# print(main("betweenness.in", "betweenness.in"))
+#print(main("semilinear_ordering.in", "quasiorder.in"))
