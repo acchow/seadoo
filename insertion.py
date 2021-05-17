@@ -1,23 +1,20 @@
 """
 bug: existing theories are not updated/added to new chains created by the new theory entered
-potentially change algo to :
 
-1)
-checking chains from the final theory, down toward the root theory
-once it stops (inconsistent) , copy all the theories traversed so far and put them into a new chain w/ the new theory
-
-2)
-check if consistent or not with the root and trunk theories
-if consistent,
-    continue w/ implemented binary search
-if not consistent,
-    start traversing from the end of the chain to check if a new chain should be formed w new theory
+check if new_t consistent or not with 1st theory in each chain
+linear search traversing from end of chain to beginning - check entailment for each
+once it does not entail, check if theory stopped at entails new_t
+if yes:
+    insert
+if no:
+    copy all trailing theories and add to the end of a new chain, starting with new_t
 
 """
 
 import relationship
 import pandas as pd
 import os
+
 
 
 def find_position(chain, new_t, low, high, insert=False):
@@ -56,13 +53,40 @@ def find_position(chain, new_t, low, high, insert=False):
         return -1
 
 
+
 def insertion(chain, in_chain, new_t):
     location = int(find_position(in_chain, new_t, 0, len(in_chain)-1, insert=True))
-    if location != -1:
+    if location == -1:
+        return []
+    else:
         new_t = new_t.replace(".in", "")
         chain.insert(location, new_t)
-    # print("inserted at ", location, chain)
-    return chain
+        # print("inserted at ", location, chain)
+        return chain
+
+
+
+def start_new_chain(chain, in_chain, new_t):
+    rel = "entails_t2_t1"
+    i = len(in_chain)
+
+    while rel == "entails_t2_t1" & i > 0:   #won't go all the way to 0, already checked that it's independent
+        i-=1
+        rel = relationship.main(new_t, in_chain[i], True)
+
+    #independent with the final theory
+    if i == len(in_chain)-1:
+        return []
+    #slice and copy the subsequent theories and add to a new chain
+    else:
+        new_t = new_t.replace(".in", "")
+        new_chain = [new_t]
+        for t in chain[i:]:
+            new_chain.append(t)
+        return new_chain
+
+
+
 
 
 def search(in_chain, new_t):
@@ -71,6 +95,12 @@ def search(in_chain, new_t):
         print("an equivalent theory is ", location)
     else:
         print("no equivalent theory found")
+
+
+
+
+
+
 
 
 def main(csv_file, new_t, function):
@@ -82,11 +112,13 @@ def main(csv_file, new_t, function):
 
     for i, c in enumerate(chains_list):
         chains_list[i] = list(filter(lambda a: pd.notna(a), c))
+
+    #add ".in" suffix to theories in chains to match input file names to check relationships
     input_chains = [[str(s) + ".in" for s in c] for c in chains_list]
 
     inserted = False
 
-    # check if new is consistent first
+    # first check if new theory is consistent
     with open(new_t, "r") as f:
         lines = f.readlines()
     lines = relationship.concatenate_axioms(lines)
@@ -98,25 +130,34 @@ def main(csv_file, new_t, function):
         print("your theory is inconsistent")
     else:
         # update each chain
+        for i, chain in enumerate(chains_list):
+            condition = relationship.main(new_t, chain[0] + ".in")
 
-        #for i, chain in enumerate(chains_list):
-         #   condition = relationship.main(new_t, chain[0] + ".in")
-          #  if "inconsistent" in condition or "independent" in condition:
-           #     continue
-            #else:
+            # skip the chain if inconsistent
+            if "inconsistent" in condition:
+                continue
 
-        if function == 1:
-            new_chain = insertion(chain, input_chains[i], new_t)
-            some_t = new_t.replace(".in", "")
-            if some_t in new_chain:
-                inserted = True
-            print(inserted)
-        elif function == 2:
-            print(search(input_chains[i], new_t))
-            inserted = True
+            #see if we can start a new chain with subsequent theories if independent
+            elif "independent" in condition and function == 1:
+                new_chain = start_new_chain(chain, input_chains[i], new_t)
+                if new_chain:
+                    chains_list.append(new_chain)
+                    inserted = True
 
-        if inserted is False:
-            # create a new chain
+            else:
+                if function == 1:   #insertion
+                    if insertion(chain, input_chains[i], new_t):
+                        inserted = True
+                    #some_t = new_t.replace(".in", "")
+                    #if some_t in new_chain:
+                     #   inserted = True
+                    #print(inserted)
+
+                elif function == 2: #search for an equivalent theory
+                    print(search(input_chains[i], new_t))
+                    inserted = True
+
+        if inserted is False: # new theory has not been inserted anywhere. create a new chain
             new_t = new_t.replace(".in", "")
             chains_list.append([new_t])
 
