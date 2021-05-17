@@ -1,15 +1,4 @@
-"""
-bug: existing theories are not updated/added to new chains created by the new theory entered
 
-check if new_t consistent or not with 1st theory in each chain
-linear search traversing from end of chain to beginning - check entailment for each
-once it does not entail, check if theory stopped at entails new_t
-if yes:
-    insert
-if no:
-    copy all trailing theories and add to the end of a new chain, starting with new_t
-
-"""
 
 import relationship
 import pandas as pd
@@ -137,14 +126,14 @@ def main(csv_file, new_t, function):
             #else:
             if function == 1:   #insertion
                 #regular insertion
-                if insertion(chain, input_chains[i], new_t):
+                if insertion(chain, input_chains[i], new_t) != -1:
                     inserted = True
 
                 #try starting a new chain with select theories contained in chain
                 else:
                     new_chain = start_new_chain(chain, input_chains[i], new_t)
                     if new_chain and (new_chain not in chains_list):
-                        print("hello")
+                        print("new chain")
                         chains_list.append(new_chain)
                         print(chains_list)
 
@@ -180,5 +169,5 @@ def complete_insertion(csv_file):
 
 
 # 1 for insert, 2 for search
-main("semilinear-orderings.csv", "dual_branching.in", 1)
+main("semilinear-orderings.csv", "weak_upper_separative.in", 1)
 #complete_insertion("between.csv")

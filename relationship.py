@@ -1,7 +1,4 @@
-'''
- August 2020
- By Amanda Chow
-'''
+
 
 from nltk import *
 import os
@@ -72,48 +69,51 @@ def consistency(lines_t1, lines_t2, path=None):
     lines = lines_t1 + lines_t2
     assumptions = read_expr(lines[0])
 
-    # set max number of models 50 (otherwise times out)
+    # set max number of models 50 to timeout
     mb = MaceCommand(None, [assumptions], max_models=50)
-    for c, added in enumerate(lines):
-        if c == 0:
-            continue
+    for c, added in enumerate(lines[1:]):
+        #if c == 0:
+         #   continue
         mb.add_assumptions([read_expr(added)])
 
     # use mb.build_model([assumptions]) to print the input
+    consistent = "inconclusive"     #inconclusive results until model for consistency or proof of inconsistency found
     model = mb.build_model()
-    consistent = False
 
+    #found a model, the theories are consistent with each other
     if model:
         consistent = True
         consistent_model = mb.model(format='cooked')
         if path:
             create_file("consistent_model", consistent_model, path)
 
+    #no model exists, or Mace reached max number of models
     elif model is False:
-        # up to 3 minutes
         prover = Prover9Command(None, [assumptions], timeout=30)
-        for c, added in enumerate(lines):
-            if c == 0:
-                continue
+        for c, added in enumerate(lines[1:]):
+            #if c == 0:
+             #   continue
             prover.add_assumptions([read_expr(added)])
 
+        #try to find a proof for inconsistency
         try:
             proven = prover.prove()
-        except Exception:
-            consistent = "inconclusive"     #no model and no proof
-
-        if proven:
-            consistent = False
-            inconsistent_proof = prover.proof()
-            if path:
-                create_file("inconsistent_proof", inconsistent_proof, path)
+            # proof found, result is inconsistent
+            if proven:
+                consistent = False
+                inconsistent_proof = prover.proof()
+                if path:
+                    create_file("inconsistent_proof", inconsistent_proof, path)
+            else:
+                consistent = "inconclusive"
+        except Exception:                   #proof timeout, reached max time limit
+            consistent = "inconclusive"     #no model and no proof, inconclusive relationship
 
     return consistent
 
 
 def entailment(lines_t1, lines_t2, path=None):
     saved_proofs = []
-    # new_axioms = []
     entail = 0
     counter_file_created = False
 
@@ -133,16 +133,18 @@ def entailment(lines_t1, lines_t2, path=None):
         # print("from prover9, assumptions: \n", prover.assumptions())
         # print("from p9, the goal: \n", prover.goal())
 
+        proven = False
+        proof_timeout = False
+        #find proof of entailment for this axiom
         try:
             proven = prover.prove()
-        except Exception:
+            if proven & (entail == 0):
+                get_proof = prover.proof()
+                saved_proofs.append(get_proof)
+        except Exception:       #proof timeout, reached max time limit
             proof_timeout = True
 
-        if proven & (entail == 0):
-            get_proof = prover.proof()
-            saved_proofs.append(get_proof)
-
-        elif proven is False:
+        if proven is False:
             entail += 1
             # saved_proofs.clear()
 
@@ -156,28 +158,28 @@ def entailment(lines_t1, lines_t2, path=None):
             # print("from mace, the goal: \n", mb.goal())
 
             # use mb.build_model([assumptions]) to print the input
-            # is there a model?
             counterexample = mb.build_model()
             # new_axioms.append(mb.goal())
 
-
+            #counterexample not found and proof timed out, inconclusive results
             if counterexample is False and proof_timeout:
                 return "inconclusive"
 
-
+            #counterexample found. does not entail. create file for counterexample
             elif counterexample & (counter_file_created is False):
                 counterexample_model = mb.model(format='cooked')
                 if path:
                     create_file("counterexample_found", counterexample_model, path)
                 counter_file_created = True
-                proof_timeout = False       #reset to false
 
             # elif counterexample is False:
             #     print("no counterexample found for the axiom: \n", mb.goal())
 
+    #does not entail
     if entail > 0:
-        # create_file("remaining_axioms", new_axioms, path)
         return False
+
+    #does entail. create files for proofs
     else:
         if path:
             for c, proof in enumerate(saved_proofs):
@@ -240,6 +242,7 @@ def owl_update(t1, rel, t2, alt_file, meta_file):
 def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None):
     # consistent
     consistent = consistency(lines_t1, lines_t2, path)
+
     if consistent == "inconclusive":
         owl_update(t1, "inconclusive_", t2, alt_file, meta_file)
         #do we want to save any proofs for other axioms if it came out inconclusive?
@@ -330,6 +333,7 @@ def main(t1, t2, file=False):
     alt_file = "alt-metatheory.owl"
     meta_file = "metatheory.owl"
 
+    #check if relationship has been documented in owl file
     check_rel = check(meta_file, t1, t2)
 
     if check_rel == "nf":
@@ -353,4 +357,4 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-#print(main("dual_branching.in", "weak_upper_separative.in"))
+print(main("anti_strict.in", "strict_between.in"))
