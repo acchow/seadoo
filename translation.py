@@ -14,7 +14,7 @@ def extract_axioms(file_name):
         for item in f:
             if "formulas(assumptions)" in item:
                 copy = True
-            if copy:
+            if copy and "%" not in item:
                 p9_axioms.append(item)
             if "end_of_list" in item:
                 break
@@ -42,5 +42,5 @@ def main(path):
 #                       + ontology + "/" + file_name)
 
 
-main("output_m4")
+main("/Users/amandachow/PycharmProjects/research_2021/output_m4")
 # output_files("between")
