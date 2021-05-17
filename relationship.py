@@ -330,4 +330,4 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-print(main("semilinear_ordering.in", "quasiorder.in"))
+#print(main("semilinear_ordering.in", "quasiorder.in"))
