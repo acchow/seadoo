@@ -1,6 +1,10 @@
+'''
+ August 2020
+ By Amanda Chow
+'''
+
 from nltk import *
 import os
-from timeout import timeout
 
 from nltk.sem import Expression
 read_expr = Expression.fromstring
@@ -64,18 +68,12 @@ def create_file(name, contents, path):
         new_file.write(contents)
 
 
-@timeout(10)
-def find_proof(prover):
-    proven = prover.prove()
-    return proven
-
-
 def consistency(lines_t1, lines_t2, path=None):
     lines = lines_t1 + lines_t2
     assumptions = read_expr(lines[0])
 
     # set max number of models 50 (otherwise times out)
-    mb = MaceCommand(None, [assumptions], max_models=5)
+    mb = MaceCommand(None, [assumptions], 5)
     for c, added in enumerate(lines):
         if c == 0:
             continue
@@ -83,7 +81,6 @@ def consistency(lines_t1, lines_t2, path=None):
 
     # use mb.build_model([assumptions]) to print the input
     model = mb.build_model()
-
     if model:
         consistent = True
         consistent_model = mb.model(format='cooked')
@@ -92,23 +89,25 @@ def consistency(lines_t1, lines_t2, path=None):
 
     elif model is False:
         # up to 3 minutes
-        prover = Prover9Command(None, [assumptions], 30)
+        prover = Prover9Command(None, [assumptions], timeout=30)
         for c, added in enumerate(lines):
             if c == 0:
                 continue
             prover.add_assumptions([read_expr(added)])
 
-        #proven = prover.prove()
         try:
-            proven = find_proof(prover)
-            if proven:
-                consistent = False
-                inconsistent_proof = prover.proof()
+            proven = prover.prove()
+        except Exception:
+            return False
+
+        if proven:
+            consistent = False
+            inconsistent_proof = prover.proof()
             if path:
                 create_file("inconsistent_proof", inconsistent_proof, path)
-        except TimeoutError:
-            print("Inconclusive proof")
-            consistent = "inconclusive"
+    else:
+        print("hey")
+        consistent = "inconclusive"
     return consistent
 
 
@@ -118,13 +117,12 @@ def entailment(lines_t1, lines_t2, path=None):
     entail = 0
     counter_file_created = False
 
-    #put each axiom from t2 in the goal one by one
     for c1, goal in enumerate(lines_t2):
         # set first lines to use prover
         assumptions = read_expr(lines_t1[0])
         goals = read_expr(goal)
 
-        prover = Prover9Command(goals, [assumptions])
+        prover = Prover9Command(goals, [assumptions], timeout = 30)
 
         # add axioms into assumptions
         for c, added in enumerate(lines_t1):
@@ -135,57 +133,49 @@ def entailment(lines_t1, lines_t2, path=None):
         # print("from prover9, assumptions: \n", prover.assumptions())
         # print("from p9, the goal: \n", prover.goal())
 
-        #proven = prover.prove()
         try:
-            proven = find_proof(prover)
+            proven = prover.prove()
+        except Exception:
+            return False
 
-            if proven & (entail == 0):
-                # theory entails this axiom
-                get_proof = prover.proof()
-                saved_proofs.append(get_proof)
+        if proven & (entail == 0):
+            get_proof = prover.proof()
+            saved_proofs.append(get_proof)
 
-            elif proven is False:
-                # flag counter that accumulates for each false proof (i.e. no entailment)
-                # continue to look for a counterexample
-                entail += 1
-                # saved_proofs.clear()
+        elif proven is False:
+            entail += 1
+            # saved_proofs.clear()
 
-                mb = MaceCommand(goals, [assumptions])
-                for c, added in enumerate(lines_t1):
-                    if c == 0:
-                        continue
-                    mb.add_assumptions([read_expr(added)])
+            mb = MaceCommand(goals, [assumptions])
+            for c, added in enumerate(lines_t1):
+                if c == 0:
+                    continue
+                mb.add_assumptions([read_expr(added)])
 
-                # print("from mace, assumptions: \n", mb.assumptions())
-                # print("from mace, the goal: \n", mb.goal())
+            # print("from mace, assumptions: \n", mb.assumptions())
+            # print("from mace, the goal: \n", mb.goal())
 
-                # use mb.build_model([assumptions]) to print the input
-                # is there a model?
-                counterexample = mb.build_model()
-                # new_axioms.append(mb.goal())
+            # use mb.build_model([assumptions]) to print the input
+            # is there a model?
+            counterexample = mb.build_model()
+            # new_axioms.append(mb.goal())
 
-                if counterexample & (counter_file_created is False):
-                    counterexample_model = mb.model(format='cooked')
-                    if path:
-                        create_file("counterexample_found", counterexample_model, path)
-                    counter_file_created = True
-                # elif counterexample is False:
-                #     print("no counterexample found for the axiom: \n", mb.goal())
-
-            if entail > 0:
-                # create_file("remaining_axioms", new_axioms, path)
-                return False
-            else:
+            if counterexample & (counter_file_created is False):
+                counterexample_model = mb.model(format='cooked')
                 if path:
-                    for c, proof in enumerate(saved_proofs):
-                        create_file("proof" + str(c + 1), proof, path)
-            return True
+                    create_file("counterexample_found", counterexample_model, path)
+                counter_file_created = True
+            # elif counterexample is False:
+            #     print("no counterexample found for the axiom: \n", mb.goal())
 
-        except TimeoutError:
-            return "inconclusive"
-
-
-
+    if entail > 0:
+        # create_file("remaining_axioms", new_axioms, path)
+        return False
+    else:
+        if path:
+            for c, proof in enumerate(saved_proofs):
+                create_file("proof" + str(c + 1), proof, path)
+        return True
 
 
 # update owl files
@@ -317,7 +307,6 @@ def main(t1, t2, file=False):
     alt_file = "alt-metatheory.owl"
     meta_file = "metatheory.owl"
 
-    # look in owl files for existing documented relationships
     check_rel = check(meta_file, t1, t2)
 
     if check_rel == "nf":
@@ -341,4 +330,4 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-# print(main("betweenness.in", "betweenness.in"))
+print(main("semilinear_ordering.in", "quasiorder.in"))

@@ -42,5 +42,5 @@ def main(path):
 #                       + ontology + "/" + file_name)
 
 
-main("output_m4")
+main("/Users/amandachow/PycharmProjects/research_2021/output_m4")
 # output_files("between")
