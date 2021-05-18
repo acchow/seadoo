@@ -70,25 +70,30 @@ def consistency(lines_t1, lines_t2, path=None):
     assumptions = read_expr(lines[0])
 
     # set max number of models 50 to timeout
-    mb = MaceCommand(None, [assumptions], max_models=50)
+    mb = MaceCommand(None, [assumptions], max_models=5)
     for c, added in enumerate(lines[1:]):
         #if c == 0:
          #   continue
         mb.add_assumptions([read_expr(added)])
 
     # use mb.build_model([assumptions]) to print the input
-    consistent = "inconclusive"     #inconclusive results until model for consistency or proof of inconsistency found
-    model = mb.build_model()
+    consistent = "inconclusive"
+    try:
+        model = mb.build_model()
+        # found a model, the theories are consistent with each other
+        if model:
+            consistent = True
+            consistent_model = mb.model(format='cooked')
+            if path:
+                create_file("consistent_model", consistent_model, path)
 
-    #found a model, the theories are consistent with each other
-    if model:
-        consistent = True
-        consistent_model = mb.model(format='cooked')
-        if path:
-            create_file("consistent_model", consistent_model, path)
+    except Exception:
+        consistent = "inconclusive"  # inconclusive results so far, no model found
+
+
 
     #no model exists, or Mace reached max number of models
-    elif model is False:
+    if model is False:
         prover = Prover9Command(None, [assumptions], timeout=30)
         for c, added in enumerate(lines[1:]):
             #if c == 0:
@@ -148,7 +153,7 @@ def entailment(lines_t1, lines_t2, path=None):
             entail += 1
             # saved_proofs.clear()
 
-            mb = MaceCommand(goals, [assumptions], max_models=50)
+            mb = MaceCommand(goals, [assumptions], max_models=5)
             for c, added in enumerate(lines_t1[1:]):
                 #if c == 0:
                  #   continue
@@ -158,19 +163,25 @@ def entailment(lines_t1, lines_t2, path=None):
             # print("from mace, the goal: \n", mb.goal())
 
             # use mb.build_model([assumptions]) to print the input
-            counterexample = mb.build_model()
+            try:
+                counterexample = mb.build_model()
+
+                #counterexample found. does not entail. create file for counterexample
+                if counterexample & (counter_file_created is False):
+                    counterexample_model = mb.model(format='cooked')
+                    if path:
+                        create_file("counterexample_found", counterexample_model, path)
+                    counter_file_created = True
+
+            except Exception:
+                counterexample = False
+
             # new_axioms.append(mb.goal())
 
-            #counterexample not found and proof timed out, inconclusive results
-            if counterexample is False and proof_timeout:
+            #counterexample not found and no proof (dne or timed out), inconclusive results
+            if counterexample is False and (proven is False or proof_timeout):
                 return "inconclusive"
 
-            #counterexample found. does not entail. create file for counterexample
-            elif counterexample & (counter_file_created is False):
-                counterexample_model = mb.model(format='cooked')
-                if path:
-                    create_file("counterexample_found", counterexample_model, path)
-                counter_file_created = True
 
             # elif counterexample is False:
             #     print("no counterexample found for the axiom: \n", mb.goal())
@@ -357,4 +368,4 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-print(main("anti_strict.in", "strict_between.in"))
+# print(main("up_branch.in", "upper_separative.in"))
