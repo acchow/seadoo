@@ -126,7 +126,7 @@ def main(csv_file, new_t, function):
             #else:
             if function == 1:   #insertion
                 #regular insertion
-                if insertion(chain, input_chains[i], new_t) != -1:
+                if insertion(chain, input_chains[i], new_t):
                     inserted = True
 
                 #try starting a new chain with select theories contained in chain
@@ -135,7 +135,7 @@ def main(csv_file, new_t, function):
                     if new_chain and (new_chain not in chains_list):
                         print("new chain")
                         chains_list.append(new_chain)
-                        print(chains_list)
+                        print(new_chain)
 
                         new_chain = [str(c) + ".in" for c in new_chain]
                         input_chains.append(new_chain)
@@ -169,5 +169,5 @@ def complete_insertion(csv_file):
 
 
 # 1 for insert, 2 for search
-main("semilinear-orderings.csv", "weak_upper_separative.in", 1)
+main("semilinear-orderings.csv", "separative.in", 1)
 #complete_insertion("between.csv")
