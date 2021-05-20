@@ -1,5 +1,3 @@
-
-
 from nltk import *
 import os
 
@@ -69,8 +67,8 @@ def consistency(lines_t1, lines_t2, path=None):
     lines = lines_t1 + lines_t2
     assumptions = read_expr(lines[0])
 
-    # set max number of models 50 to timeout
-    mb = MaceCommand(None, [assumptions], max_models=5)
+    # look for 1 model before timeout
+    mb = MaceCommand(None, [assumptions], max_models=10)
     for c, added in enumerate(lines[1:]):
         #if c == 0:
          #   continue
@@ -153,7 +151,7 @@ def entailment(lines_t1, lines_t2, path=None):
             entail += 1
             # saved_proofs.clear()
 
-            mb = MaceCommand(goals, [assumptions], max_models=5)
+            mb = MaceCommand(goals, [assumptions], max_models=10)
             for c, added in enumerate(lines_t1[1:]):
                 #if c == 0:
                  #   continue
@@ -368,4 +366,4 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-# print(main("up_branch.in", "upper_separative.in"))
+#print(main("branching.in", "upper_separative.in"))

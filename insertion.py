@@ -16,7 +16,7 @@ import os
 
 
 
-def insertion(chain, in_chain, new_t):
+def insertion(chain, in_chain, new_t, chains_list):
     top = []       #theories that entail theory
     bottom = []    #theories entailed by new theory
 
@@ -49,8 +49,11 @@ def insertion(chain, in_chain, new_t):
     new_t = new_t.replace(".in", "")
     if insert:
         #new theory can be inserted to this chain
-        chain.insert(location, new_t)
-        return True
+        copy = list(chain)
+        copy.insert(location, new_t)
+        if check_duplicate_chain(copy, chains_list, omit=i) is False:
+            chain.insert(location, new_t)
+            return True
     else:
         #form new chain with select theories
         if bottom or top:
@@ -62,7 +65,7 @@ def insertion(chain, in_chain, new_t):
 
 
 
-def check_duplicate_chain(new_chain, chains_list):
+def check_duplicate_chain(new_chain, chains_list, omit=None):
     # check if the existing decomposition already contains this chain
     # do not add new chain if it is a subset of any existing chain
     # if it is an extension of a newly created chain, add and delete the old one
@@ -70,23 +73,34 @@ def check_duplicate_chain(new_chain, chains_list):
     # the order in which theories appear should not change, so just check if all of
     # the theories in the new chain are contained in any existing chain
 
-    #index of theory being checked in new chain
-    i=0
+    #omit parameter specifies chain # to omit check (used for insertion with no new chain)
 
     for j, chain in enumerate(chains_list):
+        if j == omit:
+            continue
+
+        # index of theory being checked in the shorter chain
+        i = 0
+
         #check if new chain theories is subset of existing chain
         if len(new_chain) <= len(chain):
             for t in chain:
                 if t == new_chain[i]:
                     i+=1
                     if i == len(new_chain):
+                        #found a duplicate (only need to look for one)
+                        #cut short the search and return true
                         return True
-        #check if new chain is an extension of an existing chain
-        else:
-            if chain == new_chain[:len(chain)]:
-                #remove the existing chain
-                chains_list.pop(j)
 
+        #check if new chain is an extension of an existing chain i.e. existing is a subset of new
+        else:
+            for t in new_chain:
+                if t == chain[i]:
+                    i+=1
+                    if i == len(chain):
+                        #remove the existing chain
+                        chains_list.pop(j)
+                        break
     return False
 
 
@@ -181,20 +195,19 @@ def main(csv_file, new_t, function):
             #else:
             if function == 1:   #insertion
                 #regular insertion
-                insertion_results = insertion(chain, input_chains[i], new_t)
-                #print(insertion_results)
+                insertion_results = insertion(chain, input_chains[i], new_t, chains_list)
+                print("results", insertion_results)
 
                 #new chain was created
                 if isinstance(insertion_results, list):
                     new_chain = insertion_results
                     #print(new_chain)
 
-
                     #check for duplicate chains
                     duplicate_found = check_duplicate_chain(new_chain, chains_list)
+
                     #no duplicate found, add the new chain
                     if duplicate_found is False:
-                        print("new chain added", new_chain)
                         chains_list.append(new_chain)
 
                         new_chain = [str(c) + ".in" for c in new_chain]
@@ -252,5 +265,5 @@ def complete_insertion(csv_file):
 
 
 # 1 for insert, 2 for search
-main("semilinear-orderings.csv", "up_branch.in", 1)
+main("semilinear-orderings.csv", "lower_bound.in", 1)
 #complete_insertion("between.csv")
