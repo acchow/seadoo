@@ -18,12 +18,13 @@ import os
 
 
 
-def insertion(chain, in_chain, new_t, chains_list):
+def insertion(chain, in_chain, new_t):
     top = []       #theories that entail theory
     bottom = []    #theories entailed by new theory
 
     insert = True               #flag for insertion in existing chain
     location = len(in_chain)    #default location at end of list
+    found = False
 
     for i, t in enumerate(in_chain):
         rel = relationship.main(new_t, t, True)
@@ -42,7 +43,9 @@ def insertion(chain, in_chain, new_t, chains_list):
         elif rel == "entails_t2_t1":
             top.append(chain[i])
             #insertion location
-            location = i
+            if not found:
+                location = i
+                found = True
 
         #if there is no entailment for any theory, do not insert and create a new chain
         else:
@@ -155,7 +158,7 @@ def main(csv_file, new_t, function):
             #else:
             if function == 1:   #insertion
                 #regular insertion
-                insertion_results = insertion(chain, input_chains[i], new_t, chains_list)
+                insertion_results = insertion(chain, input_chains[i], new_t)
                 print("results", insertion_results)
 
                 #new chain was created
@@ -186,7 +189,7 @@ def main(csv_file, new_t, function):
             input_chains.append([new_t + ".in"])
 
         #remove duplicate chains
-        remove_duplicate_chains.remove(chains_list)
+        remove_duplicate_chains.removals(chains_list)
 
 
         print("here is the final list \n", chains_list)
@@ -206,5 +209,5 @@ def complete_insertion(csv_file):
 
 
 # 1 for insert, 2 for search
-main("semilinear-orderings.csv", "linear_ordering.in", 1)
+main("semilinear-orderings.csv", "weak_separative.in", 1)
 #complete_insertion("between.csv")

@@ -366,4 +366,4 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-#print(main("branching.in", "upper_separative.in"))
+#print(main("partial_ordering.in", "weak_upper_separative.in"))
