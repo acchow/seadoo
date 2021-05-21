@@ -21,24 +21,38 @@ def duplicate_check(short, long):
 
 
 
-def remove(chains_list):
+def removals(chains_list):
 
-    #chain # being checked against all other chains
+    indices = set()
+
+    #chain # being checked against all subsequent
     #chain "x"
-    for i, x in enumerate(chains_list):
+    #no need to check previous, comparisons done already
 
-        #all other chains
-        for c in (chains_list[:i] + chains_list[i+1:]):
-            # assign a short and long chain
+    slice = list(chains_list[:len(chains_list)-1])
+
+    for i, x in enumerate(slice):
+
+        #all subsequent chains
+        for j, c in enumerate(list(chains_list[i+1:])):
+
+            # assign short and long chain indices
             if len(x) <= len(c):
-                short = x
-                long = c
+                short = i
+                long = j + (i+1)
             else:
-                short = c
-                long = x
+                short = j + (i+1)
+                long = i
 
-            if duplicate_check(short, long):
-                chains_list.remove(short)
+            if duplicate_check(chains_list[short], chains_list[long]):
+                indices.add(short)
+
+
+    for i in sorted(indices, reverse=True):
+        chains_list.pop(i)
+
+
+
 
 
 
