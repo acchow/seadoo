@@ -1,4 +1,6 @@
 import relationship
+import remove_duplicate_chains
+
 import pandas as pd
 import os
 
@@ -49,11 +51,9 @@ def insertion(chain, in_chain, new_t, chains_list):
     new_t = new_t.replace(".in", "")
     if insert:
         #new theory can be inserted to this chain
-        copy = list(chain)
-        copy.insert(location, new_t)
-        if check_duplicate_chain(copy, chains_list, omit=i) is False:
-            chain.insert(location, new_t)
-            return True
+
+        chain.insert(location, new_t)
+        return True
     else:
         #form new chain with select theories
         if bottom or top:
@@ -62,47 +62,6 @@ def insertion(chain, in_chain, new_t, chains_list):
         #no entailment for any theories in the chain
         else:
             return False
-
-
-
-def check_duplicate_chain(new_chain, chains_list, omit=None):
-    # check if the existing decomposition already contains this chain
-    # do not add new chain if it is a subset of any existing chain
-    # if it is an extension of a newly created chain, add and delete the old one
-
-    # the order in which theories appear should not change, so just check if all of
-    # the theories in the new chain are contained in any existing chain
-
-    #omit parameter specifies chain # to omit check (used for insertion with no new chain)
-
-    for j, chain in enumerate(chains_list):
-        if j == omit:
-            continue
-
-        # index of theory being checked in the shorter chain
-        i = 0
-
-        #check if new chain theories is subset of existing chain
-        if len(new_chain) <= len(chain):
-            for t in chain:
-                if t == new_chain[i]:
-                    i+=1
-                    if i == len(new_chain):
-                        #found a duplicate (only need to look for one)
-                        #cut short the search and return true
-                        return True
-
-        #check if new chain is an extension of an existing chain i.e. existing is a subset of new
-        else:
-            for t in new_chain:
-                if t == chain[i]:
-                    i+=1
-                    if i == len(chain):
-                        #remove the existing chain
-                        chains_list.pop(j)
-                        break
-    return False
-
 
 
 
@@ -180,11 +139,12 @@ def main(csv_file, new_t, function):
     if check_consistent is not True:
         print("your theory is inconsistent")
     else:
+
+        print("original\n", chains_list)
+
         # update each existing chain
         # will not need to do insertions for new chains created that already contain added theory
         num_chains_start = len(chains_list)
-
-
 
 
         for i, chain in enumerate(chains_list[:num_chains_start]):
@@ -203,49 +163,30 @@ def main(csv_file, new_t, function):
                     new_chain = insertion_results
                     #print(new_chain)
 
-                    #check for duplicate chains
-                    duplicate_found = check_duplicate_chain(new_chain, chains_list)
+                    chains_list.append(new_chain)
 
-                    #no duplicate found, add the new chain
-                    if duplicate_found is False:
-                        chains_list.append(new_chain)
+                    new_chain = [str(c) + ".in" for c in new_chain]
+                    input_chains.append(new_chain)
 
-                        new_chain = [str(c) + ".in" for c in new_chain]
-                        input_chains.append(new_chain)
-
-                        inserted = True
+                    inserted = True
 
                 #theory was inserted into the chain
                 elif insertion_results:
                     inserted = True
 
 
-
-
-                #try starting a new chain with select theories contained in chain
-                # else:
-                #     new_chain = start_new_chain(chain, input_chains[i], new_t)
-                #     if new_chain and (new_chain not in chains_list):
-                #         print("new chain")
-                #         chains_list.append(new_chain)
-                #         print(new_chain)
-                #
-                #         new_chain = [str(c) + ".in" for c in new_chain]
-                #         input_chains.append(new_chain)
-                #         inserted = True
-                #some_t = new_t.replace(".in", "")
-                #if some_t in new_chain:
-                 #   inserted = True
-                #print(inserted)
-
             elif function == 2: #search for an equivalent theory
                 print(search(input_chains[i], new_t))
 
-            # new theory has not been inserted anywhere. create a new chain???????
+        # new theory has not been inserted anywhere. create a new chain???????
+        #this shouldn't happen in homeostasis, after full construction of the hierarchy
         if inserted is False:
             new_t = new_t.replace(".in", "")
             chains_list.append([new_t])
             input_chains.append([new_t + ".in"])
+
+        #remove duplicate chains
+        remove_duplicate_chains.remove(chains_list)
 
 
         print("here is the final list \n", chains_list)
@@ -265,5 +206,5 @@ def complete_insertion(csv_file):
 
 
 # 1 for insert, 2 for search
-main("semilinear-orderings.csv", "lower_bound.in", 1)
+main("semilinear-orderings.csv", "linear_ordering.in", 1)
 #complete_insertion("between.csv")
