@@ -209,5 +209,5 @@ def complete_insertion(csv_file):
 
 
 # 1 for insert, 2 for search
-main("semilinear-orderings.csv", "weak_separative.in", 1)
+#main("semilinear-orderings.csv", "separative.in", 1)
 #complete_insertion("between.csv")

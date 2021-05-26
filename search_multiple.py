@@ -140,25 +140,23 @@ def find_theories(csv_file, model_file):
 
 
 #need to loop through several models (examples + counterexamples)
-def main(csv_file):
+def main(csv_file, path=None):
 
     #complete set of closest theories for every example provided
     complete_set_theories = set()
 
     #examples - finding all theories that are consistent with them
-    for ex_file in os.listdir():
+    for ex_file in os.listdir(path):
         # takes files specified as examples using suffix _ex.in
         if ex_file.endswith("_ex.in"):
-            print(ex_file)
             # find closest theories for each individual example, add to complete set
-            complete_set_theories.update(find_theories(csv_file, ex_file))
+            complete_set_theories.update(find_theories(csv_file, path + "/" + ex_file))
 
     #counterexamples - making sure all theories found so far are inconsistent with them
-    for counter_ex_file in os.listdir():
+    for counter_ex_file in os.listdir(path):
         # takes files specified as counterexamples using suffix _cex.in
         if counter_ex_file.endswith("_cex.in"):
-            model_spec_lines = model_setup(counter_ex_file)
-            print(model_spec_lines)
+            model_spec_lines = model_setup(path + "/" + counter_ex_file)
             for t in complete_set_theories:
                 theory_lines = relationship.theory_setup(t)
 
@@ -168,4 +166,5 @@ def main(csv_file):
                 if condition:
                     complete_set_theories.remove(t)
 
-main("semilinear-orderings.csv")
+
+main("semilinear-orderings.csv", path="hashemi-data")
