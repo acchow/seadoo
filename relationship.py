@@ -52,10 +52,19 @@ def consistency(lines_t1, lines_t2, path=None):
     return consistent
 
 
-def entailment(lines_t1, lines_t2, path=None):
+def entailment(lines_t1, lines_t2, path=None, definitions_path=None):
     saved_proofs = []
     entail = 0
     counter_file_created = False
+
+    signatures = parser.signatures(lines_t2)
+    for s in signatures:
+
+        # add t2 (goal) definitions to t1 (assumptions)
+        lines_t1 += parser.definitions(s, definitions_path)
+
+        print("assumptions w/ definitions", lines_t1)
+        print("goals ", lines_t2)
 
     for c1, goal in enumerate(lines_t2):
         # set first lines to use prover
@@ -198,7 +207,7 @@ def main(t1, t2, file=False):
     # check if relationship has been documented in owl file
     check_rel = files.check(meta_file, t1, t2)
 
-    #check_rel = "nf"
+    check_rel = "nf"
 
     # nf = relationship not found in the file
     if check_rel == "nf":
@@ -212,8 +221,8 @@ def main(t1, t2, file=False):
         lines_t1 = parser.theory_setup(t1 + ".in")
         lines_t2 = parser.theory_setup(t2 + ".in")
 
-        #print("t1: ", parser.signatures(lines_t1))
-        #print("t2: ", parser.signatures(lines_t2))
+        # print("t1: ", parser.signatures(lines_t1))
+        # print("t2: ", parser.signatures(lines_t2))
 
         relationship = oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, new_dir)
     else:
@@ -221,7 +230,9 @@ def main(t1, t2, file=False):
 
     return relationship
 
+
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-print(main("up_branch.in", "upper_separative.in"))
+print(main("branching.in", "weak_upper_separative.in"))
+

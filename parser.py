@@ -1,3 +1,5 @@
+import os
+
 
 def concatenate_axioms(lines):
     # remove specific lines
@@ -44,6 +46,7 @@ def theory_setup(theory_name):
                 lines.remove("\n")
         except ValueError:
             pass
+        replace_symbol(lines, ".", "")      # added this for definitions
         replace_symbol(lines, ".\n", "")
         replace_symbol(lines, "\t", "")
     f.close()
@@ -61,10 +64,29 @@ def signatures(lines):
             if char == "(" and axiom[i-1].isalpha():
                 j = i-1
                 signature = ""
-                while (axiom[j].isalpha() or axiom[j] == "_") and j >= 0:
+                # accounts for signatures containing letters, numbers and underscores
+                while (axiom[j].isalpha() or axiom[j].isnumeric() or axiom[j] == "_") and j >= 0:
                     signature = axiom[j] + signature    # appending letter to the front of string
                     j -= 1
                 if signature and signature not in primitives:
                     s.add(signature)
     return s
+
+
+def definitions(signature, path=None):
+    # definition_req = [str(s) + ".in" for s in signatures]
+    file_name = str(signature) + ".in"
+    lines = []
+    for definition_file in os.listdir(path):
+
+        if definition_file == file_name:
+            lines = theory_setup(definition_file)
+
+        # look into file if name is in the list
+        # return the lines,
+
+    return lines
+
+
+
 
