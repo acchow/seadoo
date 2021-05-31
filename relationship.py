@@ -59,12 +59,9 @@ def entailment(lines_t1, lines_t2, path=None, definitions_path=None):
 
     signatures = parser.signatures(lines_t2)
     for s in signatures:
-
         # add t2 (goal) definitions to t1 (assumptions)
+        # does not check if they exist in lines_t1 already; may encounter duplicates
         lines_t1 += parser.definitions(s, definitions_path)
-
-        print("assumptions w/ definitions", lines_t1)
-        print("goals ", lines_t2)
 
     for c1, goal in enumerate(lines_t2):
         # set first lines to use prover
@@ -137,7 +134,7 @@ def entailment(lines_t1, lines_t2, path=None, definitions_path=None):
         return True
 
 
-def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None):
+def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None, definitions_path=None):
     # consistent
     consistent = consistency(lines_t1, lines_t2, path)
 
@@ -148,8 +145,8 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None):
         return "inconclusive_t1_t2"
 
     elif consistent:
-        o1_entails_o2 = entailment(lines_t1, lines_t2, path)
-        o2_entails_o1 = entailment(lines_t2, lines_t1, path)
+        o1_entails_o2 = entailment(lines_t1, lines_t2, path, definitions_path)
+        o2_entails_o1 = entailment(lines_t2, lines_t1, path, definitions_path)
 
         # consistent with inconclusive entailment
         # if either result is inconclusive, the whole relationship is deemed inconclusive (consistent only)
@@ -197,7 +194,7 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None):
 
 
 # main program
-def main(t1, t2, file=False):
+def main(t1, t2, file=False, definitions_path=None):
     t1 = t1.replace(".in", "")
     t2 = t2.replace(".in", "")
 
@@ -224,7 +221,7 @@ def main(t1, t2, file=False):
         # print("t1: ", parser.signatures(lines_t1))
         # print("t2: ", parser.signatures(lines_t2))
 
-        relationship = oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, new_dir)
+        relationship = oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, new_dir, definitions_path)
     else:
         relationship = check_rel
 
@@ -234,5 +231,5 @@ def main(t1, t2, file=False):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-print(main("branching.in", "weak_upper_separative.in"))
+#print(main("dual_branching.in", "weak_separative.in"))
 

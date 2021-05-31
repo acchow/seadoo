@@ -78,9 +78,8 @@ def definitions(signature, path=None):
     file_name = str(signature) + ".in"
     lines = []
     for definition_file in os.listdir(path):
-
         if definition_file == file_name:
-            lines = theory_setup(definition_file)
+            lines = theory_setup(path + "/" + definition_file)
 
         # look into file if name is in the list
         # return the lines,
