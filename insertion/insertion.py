@@ -1,6 +1,6 @@
-import parser
+from relationship import parser
 import relationship
-import remove_duplicate_chains
+from insertion import remove_duplicate_chains
 
 import pandas as pd
 import os

@@ -1,8 +1,7 @@
 from nltk import *
 import os.path
 from os import path
-import parser
-import files
+from relationship import files, parser
 
 from nltk.sem import Expression
 read_expr = Expression.fromstring
@@ -200,8 +199,8 @@ def main(t1, t2, file=False, definitions_path=None):
     t1 = t1.replace(".in", "")
     t2 = t2.replace(".in", "")
 
-    alt_file = "alt-metatheory.owl"
-    meta_file = "metatheory.owl"
+    alt_file = "../alt-metatheory.owl"
+    meta_file = "../metatheory.owl"
 
     # check if relationship has been documented in owl file
     check_rel = files.check(meta_file, t1, t2)
