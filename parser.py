@@ -73,16 +73,14 @@ def signatures(lines):
     return s
 
 
+# retrieve definitions given relation signatures
 def definitions(signature, path=None):
-    # definition_req = [str(s) + ".in" for s in signatures]
     file_name = str(signature) + ".in"
     lines = []
+
     for definition_file in os.listdir(path):
         if definition_file == file_name:
             lines = theory_setup(path + "/" + definition_file)
-
-        # look into file if name is in the list
-        # return the lines,
 
     return lines
 

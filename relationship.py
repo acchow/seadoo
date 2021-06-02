@@ -1,4 +1,6 @@
 from nltk import *
+import os.path
+from os import path
 import parser
 import files
 
@@ -145,19 +147,19 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None, definitio
         return "inconclusive_t1_t2"
 
     elif consistent:
-        o1_entails_o2 = entailment(lines_t1, lines_t2, path, definitions_path)
-        o2_entails_o1 = entailment(lines_t2, lines_t1, path, definitions_path)
+        t1_entails_t2 = entailment(lines_t1, lines_t2, path, definitions_path)
+        t2_entails_t1 = entailment(lines_t2, lines_t1, path, definitions_path)
 
         # consistent with inconclusive entailment
         # if either result is inconclusive, the whole relationship is deemed inconclusive (consistent only)
-        if o1_entails_o2 == "inconclusive" or o2_entails_o1 == "inconclusive":
+        if t1_entails_t2 == "inconclusive" or t2_entails_t1 == "inconclusive":
             files.owl(t1, "consistent", t2, alt_file, meta_file)
             if path:
                 os.rename(path, "consistent_" + t1 + "_" + t2)
             return "consistent_t1_t2"
 
         # equivalent
-        if o1_entails_o2 & o2_entails_o1:
+        if t1_entails_t2 & t2_entails_t1:
             if t1 != t2:
                 files.owl(t1, "equivalent", t2, alt_file, meta_file)
                 if path:
@@ -165,21 +167,21 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None, definitio
             return "equivalent_t1_t2"
 
         # independent
-        elif (o1_entails_o2 is False) & (o2_entails_o1 is False):
+        elif (t1_entails_t2 is False) & (t2_entails_t1 is False):
             files.owl(t1, "independent", t2, alt_file, meta_file)
             if path:
                 os.rename(path, "independent_" + t1 + "_" + t2)
             return "independent_t1_t2"
 
         # t1 entails t2
-        elif o1_entails_o2:
+        elif t1_entails_t2:
             files.owl(t1, "entails", t2, alt_file, meta_file)
             if path:
                 os.rename(path, "entails_" + t1 + "_" + t2)
             return "entails_t1_t2"
 
         # t2 entails t1
-        elif o2_entails_o1:
+        elif t2_entails_t1:
             files.owl(t2, "entails", t1, alt_file, meta_file)
             if path:
                 os.rename(path, "entails_" + t2 + "_" + t1)
@@ -208,9 +210,18 @@ def main(t1, t2, file=False, definitions_path=None):
 
     # nf = relationship not found in the file
     if check_rel == "nf":
+        # create directory with proof and model files
         if file:
-            new_dir = t1 + "_" + t2
-            if not os.path.exists(new_dir):
+            make_new = True
+
+            for n in os.listdir():
+                if t1 in n and t2 in n:     # directory already exists, do not make a new one
+                    new_dir = None
+                    make_new = False
+
+            # make a new directory
+            if make_new:
+                new_dir = t1 + "_" + t2
                 os.mkdir(new_dir)
         else:
             new_dir = None
@@ -218,8 +229,9 @@ def main(t1, t2, file=False, definitions_path=None):
         lines_t1 = parser.theory_setup(t1 + ".in")
         lines_t2 = parser.theory_setup(t2 + ".in")
 
-        # print("t1: ", parser.signatures(lines_t1))
-        # print("t2: ", parser.signatures(lines_t2))
+        if not path.exists(definitions_path):
+            print("definitions directory ", definitions_path, " not found")
+            definitions_path = None
 
         relationship = oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, new_dir, definitions_path)
     else:
@@ -231,5 +243,5 @@ def main(t1, t2, file=False, definitions_path=None):
 # t1 = input("enter theory 1:")
 # t2 = input("enter theory 2:")
 # print(main(t1, t2))
-#print(main("dual_branching.in", "weak_separative.in"))
+# print(main("partial_ordering.in", "branching.in", True, "definitions"))
 
