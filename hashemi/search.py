@@ -1,11 +1,6 @@
-'''
- August 2020
- By Amanda Chow
- This program searches for the closest matching theories given a model specification
-'''
-
 import pandas as pd
-import relationship
+from relationship import parser, relationship
+import os
 
 
 def extract_constants(lines):
@@ -54,8 +49,8 @@ def model_setup(file_name):
                 model_spec_lines.remove("\n")
         except ValueError:
             pass
-        relationship.replace_symbol(model_spec_lines, ".\n", "")
-        relationship.replace_symbol(model_spec_lines, "\t", "")
+        relationship.parser.replace_symbol(model_spec_lines, ".\n", "")
+        parser.replace_symbol(model_spec_lines, "\t", "")
     f.close()
     return model_spec_lines
 
@@ -63,7 +58,7 @@ def model_setup(file_name):
 # returns greatest position # of consistent theory
 def find_position(chain, model_lines, low, high):
     if low == high:
-        low_lines = relationship.theory_setup(chain[low])
+        low_lines = parser.theory_setup(chain[low])
         compare_low = relationship.consistency(model_lines, low_lines)
         if compare_low is True:
             print("consistent with ", chain[low])
@@ -77,7 +72,7 @@ def find_position(chain, model_lines, low, high):
         return low
 
     mid = (low+high)//2
-    mid_lines = relationship.theory_setup(chain[mid])
+    mid_lines = parser.theory_setup(chain[mid])
     compare_mid = relationship.consistency(model_lines, mid_lines)
 
     # lower half
@@ -107,7 +102,8 @@ def search(in_chain, model_lines):
         return -1
 
 
-def main(csv_file, model_file):
+def find_theories(csv_file, model_file):
+    # get the chain decomposition
     chains_df = pd.read_csv(csv_file)
     chains_list = []
     [chains_list.append(row) for row in chains_df]
@@ -119,19 +115,48 @@ def main(csv_file, model_file):
 
     model_spec_lines = model_setup(model_file)
 
-    closest_theories = []
+    closest_theories = set()
     for i, chain in enumerate(chains_list):
-        theory_lines = relationship.theory_setup(chain[0] + ".in")
+        theory_lines = parser.theory_setup(chain[0] + ".in")
         condition = relationship.consistency(model_spec_lines, theory_lines)
         if condition is not True:
             continue
         else:
             item = search(input_chains[i], model_spec_lines)
             if item != -1:
-                closest_theories.append(item)
+                closest_theories.update(item)
             print("closest theories are: ", closest_theories)
 
-    print("done")
+    # print
+    return closest_theories
 
 
-main("between.csv", "anti_strict_model_spec.in")
+# need to loop through several models (examples + counterexamples)
+def main(csv_file, path=None):
+
+    # complete set of closest theories for every example provided
+    complete_set_theories = set()
+
+    # examples - finding all theories that are consistent with them
+    for ex_file in os.listdir(path):
+        # takes files specified as examples using suffix _ex.in
+        if ex_file.endswith("_ex.in"):
+            # find closest theories for each individual example, add to complete set
+            complete_set_theories.update(find_theories(csv_file, path + "/" + ex_file))
+
+    # counterexamples - making sure all theories found so far are inconsistent with them
+    for counter_ex_file in os.listdir(path):
+        # takes files specified as counterexamples using suffix _cex.in
+        if counter_ex_file.endswith("_cex.in"):
+            model_spec_lines = model_setup(path + "/" + counter_ex_file)
+            for t in complete_set_theories:
+                theory_lines = parser.theory_setup(t)
+
+                print(t, ":", theory_lines)
+                condition = relationship.consistency(model_spec_lines, theory_lines)
+                # found a theory that is consistent with the counterexample. remove the theory
+                if condition:
+                    complete_set_theories.remove(t)
+
+
+main("../semilinear-orderings.csv", path="hashemi-data")
