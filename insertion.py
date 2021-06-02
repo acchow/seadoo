@@ -101,7 +101,7 @@ def search(in_chain, new_t, definitions_path=None):
         print("no equivalent theory found")
 
 
-def main(csv_file, new_t, function, definitions_path=None):
+def main(csv_file, new_t, function, definitions_path=None, construct_hierarchy=False):
     # open existing chain decomposition file, converted to DataFrame then lists
     chains_df = pd.read_csv(csv_file)
     chains_list = []
@@ -165,7 +165,7 @@ def main(csv_file, new_t, function, definitions_path=None):
         # new theory has not been inserted anywhere. create a new chain
         # this shouldn't happen after full construction of the hierarchy; if the new theory
         # is inconsistent with the root, it doesn't belong in the hierarchy
-        if inserted is False:
+        if inserted is False and construct_hierarchy:
             new_t = new_t.replace(".in", "")
             chains_list.append([new_t])
             input_chains.append([new_t + ".in"])
@@ -181,12 +181,12 @@ def main(csv_file, new_t, function, definitions_path=None):
 
 
 # construction of a hierarchy
-# def complete_insertion(csv_file):
-#    for file_name in os.listdir():
-#        if file_name.endswith(".in"):
-#            print(file_name)
-#            main(csv_file, file_name, 1)
+def construct_hierarchy(csv_file, definitions_path, path=None):
+    for file_name in os.listdir(path):
+        if file_name.endswith(".in"):
+            main(csv_file, file_name, 1, definitions_path, construct_hierarchy=True)
+
 
 # 1 for insert, 2 for search
-main("semilinear-orderings.csv", "up_branch.in", 1, definitions_path="definitions")
-# complete_insertion("between.csv")
+# main("semilinear-orderings.csv", "lower_preorder.in", 1, definitions_path="definitions")
+# construct_hierarchy("semilinear-orderings-complete.csv", definitions_path="definitions")
