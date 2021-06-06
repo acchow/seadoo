@@ -1,7 +1,14 @@
+# run the program from the directory enclosing the package
+# python3 -m relationship.relationship
+
 from nltk import *
+
 import os.path
 from os import path
-from relationship import files, parser
+import config       # contains all specified file paths
+
+from relationship import files
+from parse import theory
 
 from nltk.sem import Expression
 read_expr = Expression.fromstring
@@ -58,11 +65,11 @@ def entailment(lines_t1, lines_t2, path=None, definitions_path=None):
     entail = 0
     counter_file_created = False
 
-    signatures = parser.signatures(lines_t2)
+    signatures = theory.signatures(lines_t2)
     for s in signatures:
         # add t2 (goal) definitions to t1 (assumptions)
         # does not check if they exist in lines_t1 already; may encounter duplicates
-        lines_t1 += parser.definitions(s, definitions_path)
+        lines_t1 += theory.definitions(s, definitions_path)
 
     for c1, goal in enumerate(lines_t2):
         # set first lines to use prover
@@ -195,17 +202,17 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None, definitio
 
 
 # main program
-def main(t1, t2, file=False, definitions_path=None):
+def main(t1=config.t1, t2=config.t2, file=False, file_path=config.path, definitions_path=config.path+"definitions"):
     t1 = t1.replace(".in", "")
     t2 = t2.replace(".in", "")
 
-    alt_file = "../alt-metatheory.owl"
-    meta_file = "../metatheory.owl"
+    alt_file = file_path + "alt-metatheory.owl"
+    meta_file = file_path + "metatheory.owl"
 
     # check if relationship has been documented in owl file
     check_rel = files.check(meta_file, t1, t2)
 
-    check_rel = "nf"
+    # check_rel = "nf"
 
     # nf = relationship not found in the file
     if check_rel == "nf":
@@ -213,7 +220,7 @@ def main(t1, t2, file=False, definitions_path=None):
         if file:
             make_new = True
 
-            for n in os.listdir():
+            for n in os.listdir(file_path):
                 if t1 in n and t2 in n:     # directory already exists, do not make a new one
                     new_dir = None
                     make_new = False
@@ -225,8 +232,8 @@ def main(t1, t2, file=False, definitions_path=None):
         else:
             new_dir = None
 
-        lines_t1 = parser.theory_setup(t1 + ".in")
-        lines_t2 = parser.theory_setup(t2 + ".in")
+        lines_t1 = theory.theory_setup(file_path + t1 + ".in")
+        lines_t2 = theory.theory_setup(file_path + t2 + ".in")
 
         if not path.exists(definitions_path):
             print("definitions directory ", definitions_path, " not found")
@@ -239,8 +246,5 @@ def main(t1, t2, file=False, definitions_path=None):
     return relationship
 
 
-# t1 = input("enter theory 1:")
-# t2 = input("enter theory 2:")
-# print(main(t1, t2))
-# print(main("partial_ordering.in", "branching.in", True, "definitions"))
+print(main())
 
