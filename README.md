@@ -18,7 +18,7 @@ The first row of the csv file must contain a list of integers from zero to the l
 If this is an empty csv file (constructing a new hierarchy), enter the number 0 at the first position (row 0 column 0) before running 
 the insertion. 
 
-#### Installations Required
+#### Additional Installations
 1. [Pandas](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html)
 2. relationship package
 
@@ -28,7 +28,7 @@ the insertion.
 
 ## Search (Hashemi Procedure)
 
-#### Installations Required
+#### Additional Installations
 1. [Pandas](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html)
 2. relationship package
 
