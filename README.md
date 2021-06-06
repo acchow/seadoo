@@ -1,4 +1,5 @@
 # The Oracle
+(last updated 08/2020) 
 This project includes scripts used as tools for the [Common Logic Repository](https://github.com/gruninger/colore) to navigate its ontologies through insertion and search algorithms.
 
 ## relationship.py (“the oracle”)
