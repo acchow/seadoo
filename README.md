@@ -36,7 +36,7 @@ the insertion.
 `python3 -m hashemi.search`
 
 
-##Other tools
+## Other tools
 ### Parser for translated P9 axioms
 Extracts translated Prover9 axioms from .m4.out files generated into the output folder
 by the [CLIF-P9 translator program on macleod](https://github.com/thahmann/macleod/wiki/macleod-python3-(beta)-GUI-setup) 
