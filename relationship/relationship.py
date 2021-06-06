@@ -202,7 +202,7 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None, definitio
 
 
 # main program
-def main(t1=config.t1, t2=config.t2, file=False, file_path=config.path, definitions_path=config.path+"definitions"):
+def main(t1=config.t1, t2=config.t2, file=False, file_path=config.path, definitions_path=config.definitions):
     t1 = t1.replace(".in", "")
     t2 = t2.replace(".in", "")
 
