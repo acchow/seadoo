@@ -246,5 +246,5 @@ def main(t1=config.t1, t2=config.t2, file=False, file_path=config.path, definiti
     return relationship
 
 
-print(main())
+# main()
 

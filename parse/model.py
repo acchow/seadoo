@@ -1,5 +1,4 @@
 from parse import theory
-import parse
 
 
 def extract_constants(lines):
