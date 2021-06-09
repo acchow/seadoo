@@ -12,7 +12,7 @@ def find_strong(chain, model_lines):
     strongest = -1       # index of strongest consistent theory
 
     while i >= 0 and not consistent:
-        consistent = relationship.consistency(model_lines, theory.theory_setup(chain[i]))
+        consistent = relationship.consistency(model_lines, theory.theory_setup(config.path + "/" + chain[i]))
         # found maximal consistent theory
         if consistent:
             strongest = i
@@ -30,7 +30,7 @@ def find_weak(chain, model_lines):
     weakest = len(chain)
 
     while i <= max_index and consistent:
-        consistent = relationship.consistency(model_lines, theory.theory_setup(chain[i]))
+        consistent = relationship.consistency(model_lines, theory.theory_setup(config.path + "/" + chain[i]))
         # found minimal inconsistent theory
         if not consistent:
             weakest = i
@@ -46,32 +46,35 @@ def find_bracket(chain, ex_path=config.examples, cex_path=config.counterexamples
 
     # find strongest theory that is consistent with all examples
     for ex_file in os.listdir(ex_path):
-        s = find_strong(chain, model.model_setup(ex_file))
-        # update the maximum
-        if s < strong:
-            strong = s
-            # the example is inconsistent with all theories in the chain
-            if strong == -1:
-                break
+        if ex_file.endswith(".in"):
+            print(ex_file)
+            s = find_strong(chain, model.model_setup(ex_path + "/" + ex_file))
+            # update the maximum
+            if s < strong:
+                strong = s
+                # the example is inconsistent with all theories in the chain
+                if strong == -1:
+                    break
 
     # find weakest theory that is not consistent with all counterexamples
     for cex_file in os.listdir(cex_path):
-        w = find_weak(chain, model.model_setup(cex_file))
-        # update the minimum
-        if w > weak:
-            weak = w
-            # the counterexample is consistent with all theories in the chain
-            if weak == len(chain):
-                break
+        if cex_file.endswith(".in"):
+            w = find_weak(chain, model.model_setup(cex_path + "/" + cex_file))
+            # update the minimum
+            if w > weak:
+                weak = w
+                # the counterexample is consistent with all theories in the chain
+                if weak == len(chain):
+                    break
 
     # no bracket
-    if strong == -1 and weak == -1:
+    if strong == -1 and weak == len(chain):
         bracket = -1
 
     # one-sided brackets
     elif strong == -1:
         bracket = [chain[weak], None]
-    elif weak == -1:
+    elif weak == len(chain):
         bracket = [None, chain[strong]]
 
     # bracket found
@@ -103,5 +106,5 @@ def main(csv_file=config.csv, ex_path=config.examples, cex_path=config.counterex
     return all_brackets
 
 
-# print(main())
+print(main())
 
