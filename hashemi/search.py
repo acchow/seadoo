@@ -47,7 +47,6 @@ def find_bracket(chain, ex_path=config.examples, cex_path=config.counterexamples
     # find strongest theory that is consistent with all examples
     for ex_file in os.listdir(ex_path):
         if ex_file.endswith(".in"):
-            print(ex_file)
             s = find_strong(chain, model.model_setup(ex_path + "/" + ex_file))
             # update the maximum
             if s < strong:
