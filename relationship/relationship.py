@@ -1,6 +1,3 @@
-# run the program from the directory enclosing the package
-# python3 -m relationship.relationship
-
 from nltk import *
 
 import os.path
@@ -14,7 +11,7 @@ from nltk.sem import Expression
 read_expr = Expression.fromstring
 
 
-def consistency(lines_t1, lines_t2, path=None):
+def consistency(lines_t1, lines_t2, path=config.path):
     lines = lines_t1 + lines_t2
     assumptions = read_expr(lines[0])
 
@@ -148,8 +145,7 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None, definitio
 
     if consistent == "inconclusive":
         files.owl(t1, "inconclusive_", t2, alt_file, meta_file)
-        # do we want to save any proofs for other axioms if it came out inconclusive?
-        # log it back to the ontology designer
+        os.remove(path, t1 + "_" + t2)
         return "inconclusive_t1_t2"
 
     elif consistent:
@@ -157,7 +153,7 @@ def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None, definitio
         t2_entails_t1 = entailment(lines_t2, lines_t1, path, definitions_path)
 
         # consistent with inconclusive entailment
-        # if either result is inconclusive, the whole relationship is deemed inconclusive (consistent only)
+        # if either side entailment is inconclusive, the relationship is deemed inconclusive (consistent only)
         if t1_entails_t2 == "inconclusive" or t2_entails_t1 == "inconclusive":
             files.owl(t1, "consistent", t2, alt_file, meta_file)
             if path:
@@ -218,17 +214,12 @@ def main(t1=config.t1, t2=config.t2, file=False, file_path=config.path, definiti
     if check_rel == "nf":
         # create directory with proof and model files
         if file:
-            make_new = True
-
-            for n in os.listdir(file_path):
-                if t1 in n and t2 in n:     # directory already exists, do not make a new one
-                    new_dir = None
-                    make_new = False
-
-            # make a new directory
-            if make_new:
+            try:
                 new_dir = t1 + "_" + t2
                 os.mkdir(new_dir)
+            except OSError:     # directory already exists
+                new_dir = None
+
         else:
             new_dir = None
 
@@ -246,5 +237,7 @@ def main(t1=config.t1, t2=config.t2, file=False, file_path=config.path, definiti
     return relationship
 
 
-# main()
+if __name__ == "__main__":
+    # print(main())
+    main()
 
