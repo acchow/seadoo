@@ -1,10 +1,9 @@
-from parse import theory
 import config
+from parse import theory
 from relationship import relationship
 from insertion import remove_duplicate_chains
 
 import pandas as pd
-import os
 
 
 def insertion(chain, in_chain, new_t=config.new_t, file_path=config.path, definitions_path=config.definitions):
@@ -183,11 +182,5 @@ def main(csv_file=config.csv, new_t=config.new_t, function=config.function,
         print("chain decomposition is now updated")
 
 
-# construction of a hierarchy
-def construct_hierarchy(csv_file=config.csv, file_path=config.path, definitions_path=config.definitions):
-    for file_name in os.listdir(file_path):
-        if file_name.endswith(".in"):
-            main(csv_file, file_name, 1, file_path, definitions_path, hierarchy=True)
-
-
-main()
+if __name__ == "__main__":
+    main()
