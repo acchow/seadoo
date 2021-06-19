@@ -57,7 +57,6 @@ def theory_setup(theory_name):
 # parsing all the signatures that appear before an opening parentheses
 def signatures(lines):
     s = set()
-    primitives = ["leq"]
 
     for axiom in lines:
         for i, char in enumerate(axiom):
@@ -68,12 +67,12 @@ def signatures(lines):
                 while (axiom[j].isalpha() or axiom[j].isnumeric() or axiom[j] == "_") and j >= 0:
                     signature = axiom[j] + signature    # appending letter to the front of string
                     j -= 1
-                if signature and signature not in primitives:
+                if signature:
                     s.add(signature)
     return s
 
 
-# retrieve definitions given relation signatures
+# retrieve definitions given a relation signature
 def definitions(signature, path=None):
     file_name = str(signature) + ".in"
     lines = []
