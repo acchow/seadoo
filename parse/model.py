@@ -1,5 +1,4 @@
 from parse import theory
-import config
 
 
 def extract_constants(lines):
@@ -59,6 +58,3 @@ def model_setup(file_name):
 
     f.close()
     return model_spec_lines
-
-
-print(model_setup(config.model))
