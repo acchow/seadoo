@@ -1,10 +1,11 @@
 from parse import theory
+import config
 
 
 def extract_constants(lines):
     unique_constants = []
     for line in lines:
-        if "(" in line:
+        if "(" in line and "formulas(assumptions)" not in line and "end_of_list" not in line:
             for c in range(line.index("(")+1, line.index(")")-1, 1):
                 while line[c] != "," and line[c] not in unique_constants:
                     unique_constants.append(line[c])
@@ -28,27 +29,36 @@ def make_inequalities(unique_constants):
 
 
 def model_setup(file_name):
-    with open(file_name, "r+") as f:
-        lines = f.readlines()
-        input1 = (extract_constants(lines))
-        add_these_lines = make_inequalities(input1)
-        for line in add_these_lines:
-            f.write(line)
-    f.close()
-
     with open(file_name, "r") as f:
         model_spec_lines = f.readlines()
+        del model_spec_lines[0]         # formulas(assumptions)
+        del model_spec_lines[len(model_spec_lines)-1] # end_of_list
+
         # remove comments
         for x, line in enumerate(model_spec_lines):
-            while "%" in model_spec_lines[x]:
+            while "%" in line:
                 model_spec_lines.remove(model_spec_lines[x])
+
         try:
             while True:
                 model_spec_lines.remove("\n")
         except ValueError:
             pass
-        theory.replace_symbol(model_spec_lines, ".\n", "")
-        theory.replace_symbol(model_spec_lines, "\t", "")
+        try:
+            while True:
+                model_spec_lines.remove("")
+        except ValueError:
+            pass
+
+        inequalities = make_inequalities(extract_constants(model_spec_lines))
+        model_spec_lines += inequalities
+
+        model_spec_lines = theory.replace_symbol(model_spec_lines, ".\n", "")
+        model_spec_lines = theory.replace_symbol(model_spec_lines, "\n", "")
+        model_spec_lines = theory.replace_symbol(model_spec_lines, "\t", "")
+
     f.close()
     return model_spec_lines
 
+
+print(model_setup(config.model))
