@@ -1,19 +1,26 @@
 import os
+import config
+
+T1 = config.t1
+T2 = config.t2
+FILE_PATH = config.path
+ALT_FILE = config.alt
+META_FILE = config.meta
 
 
-def create_file(name, contents, path):
-    new_path = os.path.join(path, name)
+def create_file(name, contents):
+    new_path = os.path.join(FILE_PATH, name)
     with open(new_path, "w+") as new_file:
         new_file.write(contents)
 
 
 # update owl files
-def owl(t1, rel, t2, alt_file, meta_file):
+def owl(rel, t1=T1, t2=T2):
     l1 = "ObjectPropertyAssertion(:" + rel
     l2 = " :" + t1 + " :" + t2 + ")\n\n"
     syntax1 = l1 + l2
 
-    f = open(alt_file, "r")
+    f = open(ALT_FILE, "r")
     alt_lines = f.readlines()
     f.close()
 
@@ -22,7 +29,7 @@ def owl(t1, rel, t2, alt_file, meta_file):
             alt_lines.insert(c1, syntax1)
             break
 
-    f = open(alt_file, "w")
+    f = open(ALT_FILE, "w")
     alt_string = "".join(alt_lines)
     f.write(alt_string)
     f.close()
@@ -38,7 +45,7 @@ def owl(t1, rel, t2, alt_file, meta_file):
     l8 = "ObjectPropertyAssertion(:" + rel + " :" + t1 + " :" + t2 + ")\n\n"
     syntax2 = l4 + l5 + l6 + l7 + l8
 
-    f = open(meta_file, "r")
+    f = open(META_FILE, "r")
     meta_lines = f.readlines()
     f.close()
 
@@ -53,13 +60,16 @@ def owl(t1, rel, t2, alt_file, meta_file):
             meta_lines.insert(c1, syntax2)
             break
 
-    f = open(meta_file, "w")
+    f = open(META_FILE, "w")
     meta_string = "".join(meta_lines)
     f.write(meta_string)
     f.close()
 
 
-def check(meta_file, t1, t2):
+def check():
+    t1 = T1.replace(".in", "")
+    t2 = T2.replace(".in", "")
+
     # check if relationship has been found already
     possible = ["inconclusive",
                 "consistent",
@@ -68,17 +78,15 @@ def check(meta_file, t1, t2):
                 "independent",
                 "equivalent"]
 
-    with open(meta_file, "r") as file3:
+    with open(META_FILE, "r") as file3:
         all_relations = file3.readlines()
         for r in all_relations:
             for p in possible:
                 if "ObjectPropertyAssertion(:" + p + " :" + t1 + " :" + t2 + ")" in r:
-                    # print("ObjectPropertyAssertion(:" + p + " :" + t1 + " :" + t2 + ")")
                     relationship = p + "_t1_t2"
                     file3.close()
                     return relationship
                 elif "ObjectPropertyAssertion(:" + p + " :" + t2 + " :" + t1 + ")" in r:
-                    # print("ObjectPropertyAssertion(:" + p + " :" + t2 + " :" + t1 + ")")
                     relationship = p + "_t2_t1"
                     file3.close()
                     return relationship
