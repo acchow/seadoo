@@ -11,7 +11,7 @@ from nltk.sem import Expression
 read_expr = Expression.fromstring
 
 
-def consistency(lines_t1, lines_t2, path=config.path):
+def consistency(lines_t1, lines_t2, file_path=config.path):
     lines = lines_t1 + lines_t2
     assumptions = read_expr(lines[0])
 
@@ -28,8 +28,8 @@ def consistency(lines_t1, lines_t2, path=config.path):
         if model:
             consistent = True
             consistent_model = mb.model(format='cooked')
-            if path:
-                files.create_file("consistent_model", consistent_model, path)
+            if file_path:
+                files.create_file("consistent_model", consistent_model, file_path)
 
     except Exception:
         consistent = "inconclusive"  # inconclusive results so far, no model found
@@ -47,8 +47,8 @@ def consistency(lines_t1, lines_t2, path=config.path):
             if proven:
                 consistent = False
                 inconsistent_proof = prover.proof()
-                if path:
-                    files.create_file("inconsistent_proof", inconsistent_proof, path)
+                if file_path:
+                    files.create_file("inconsistent_proof", inconsistent_proof, file_path)
             else:
                 consistent = "inconclusive"
         except Exception:  # proof timeout, reached max time limit
@@ -57,7 +57,7 @@ def consistency(lines_t1, lines_t2, path=config.path):
     return consistent
 
 
-def entailment(lines_t1, lines_t2, path=None, definitions_path=None):
+def entailment(lines_t1, lines_t2, file_path=None, definitions_path=None):
     saved_proofs = []
     entail = 0
     counter_file_created = False
@@ -111,8 +111,8 @@ def entailment(lines_t1, lines_t2, path=None, definitions_path=None):
                 # counterexample found. does not entail. create file for counterexample
                 if counterexample & (counter_file_created is False):
                     counterexample_model = mb.model(format='cooked')
-                    if path:
-                        files.create_file("counterexample_found", counterexample_model, path)
+                    if file_path:
+                        files.create_file("counterexample_found", counterexample_model, file_path)
                     counter_file_created = True
 
             except Exception:
@@ -133,89 +133,87 @@ def entailment(lines_t1, lines_t2, path=None, definitions_path=None):
 
     # does entail. create files for proofs
     else:
-        if path:
+        if file_path:
             for c, proof in enumerate(saved_proofs):
-                files.create_file("proof" + str(c + 1), proof, path)
+                files.create_file("proof" + str(c + 1), proof, file_path)
         return True
 
 
-def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, path=None, definitions_path=None):
+def oracle(t1, lines_t1, t2, lines_t2, alt_file, meta_file, file_path=None, definitions_path=None):
     # consistent
-    consistent = consistency(lines_t1, lines_t2, path)
+    consistent = consistency(lines_t1, lines_t2, file_path)
 
     if consistent == "inconclusive":
         files.owl(t1, "inconclusive_", t2, alt_file, meta_file)
-        os.remove(path, t1 + "_" + t2)
+        os.remove(file_path, t1 + "_" + t2)
         return "inconclusive_t1_t2"
 
     elif consistent:
-        t1_entails_t2 = entailment(lines_t1, lines_t2, path, definitions_path)
-        t2_entails_t1 = entailment(lines_t2, lines_t1, path, definitions_path)
+        t1_entails_t2 = entailment(lines_t1, lines_t2, file_path, definitions_path)
+        t2_entails_t1 = entailment(lines_t2, lines_t1, file_path, definitions_path)
 
         # consistent with inconclusive entailment
         # if either side entailment is inconclusive, the relationship is deemed inconclusive (consistent only)
         if t1_entails_t2 == "inconclusive" or t2_entails_t1 == "inconclusive":
             files.owl(t1, "consistent", t2, alt_file, meta_file)
-            if path:
-                os.rename(path, "consistent_" + t1 + "_" + t2)
+            if file_path:
+                os.rename(file_path, "consistent_" + t1 + "_" + t2)
             return "consistent_t1_t2"
 
         # equivalent
         if t1_entails_t2 & t2_entails_t1:
             if t1 != t2:
                 files.owl(t1, "equivalent", t2, alt_file, meta_file)
-                if path:
-                    os.rename(path, "equivalent_" + t1 + "_" + t2)
+                if file_path:
+                    os.rename(file_path, "equivalent_" + t1 + "_" + t2)
             return "equivalent_t1_t2"
 
         # independent
         elif (t1_entails_t2 is False) & (t2_entails_t1 is False):
             files.owl(t1, "independent", t2, alt_file, meta_file)
-            if path:
-                os.rename(path, "independent_" + t1 + "_" + t2)
+            if file_path:
+                os.rename(file_path, "independent_" + t1 + "_" + t2)
             return "independent_t1_t2"
 
         # t1 entails t2
         elif t1_entails_t2:
             files.owl(t1, "entails", t2, alt_file, meta_file)
-            if path:
-                os.rename(path, "entails_" + t1 + "_" + t2)
+            if file_path:
+                os.rename(file_path, "entails_" + t1 + "_" + t2)
             return "entails_t1_t2"
 
         # t2 entails t1
         elif t2_entails_t1:
             files.owl(t2, "entails", t1, alt_file, meta_file)
-            if path:
-                os.rename(path, "entails_" + t2 + "_" + t1)
+            if file_path:
+                os.rename(file_path, "entails_" + t2 + "_" + t1)
             return "entails_t2_t1"
 
     # inconsistent
     elif consistent is False:
         files.owl(t1, "inconsistent", t2, alt_file, meta_file)
-        if path:
-            os.rename(path, "inconsistent_" + t1 + "_" + t2)
+        if file_path:
+            os.rename(file_path, "inconsistent_" + t1 + "_" + t2)
         return "inconsistent_t1_t2"
 
 
 # main program
-def main(t1=config.t1, t2=config.t2, file=False, file_path=config.path, definitions_path=config.definitions):
-    t1 = t1.replace(".in", "")
-    t2 = t2.replace(".in", "")
-
-    alt_file = file_path + "alt-metatheory.owl"
-    meta_file = file_path + "metatheory.owl"
+def main(t1=config.t1, t2=config.t2, file=False, file_path=config.path, definitions_path=config.definitions,
+         alt_file=config.alt, meta_file=config.meta):
+    # t1 = t1.replace(".in", "")
+    # t2 = t2.replace(".in", "")
 
     # check if relationship has been documented in owl file
-    check_rel = files.check(meta_file, t1, t2)
+    check_rel = files.check(meta_file, t1.replace(".in", ""), t2.replace(".in", ""))
 
-    # check_rel = "nf"
+    check_rel = "nf"
 
     # nf = relationship not found in the file
     if check_rel == "nf":
         # create directory with proof and model files
         if file:
             try:
-                new_dir = t1 + "_" + t2
+                new_dir = t1.replace(".in", "") + "_" + t2.replace(".in", "")
                 os.mkdir(new_dir)
             except OSError:     # directory already exists
                 new_dir = None
@@ -223,8 +221,11 @@ def main(t1=config.t1, t2=config.t2, file=False, file_path=config.path, definiti
         else:
             new_dir = None
 
-        lines_t1 = theory.theory_setup(file_path + t1 + ".in")
-        lines_t2 = theory.theory_setup(file_path + t2 + ".in")
+        lines_t1 = theory.theory_setup(os.path.join(file_path, t1))
+        lines_t2 = theory.theory_setup(os.path.join(file_path, t2))
+
+        # lines_t1 = theory.theory_setup(file_path + t1 + ".in")
+        # lines_t2 = theory.theory_setup(file_path + t2 + ".in")
 
         if not path.exists(definitions_path):
             print("definitions directory ", definitions_path, " not found")
@@ -238,6 +239,6 @@ def main(t1=config.t1, t2=config.t2, file=False, file_path=config.path, definiti
 
 
 if __name__ == "__main__":
-    # print(main())
-    main()
+    print(main())
+    # main()
 
