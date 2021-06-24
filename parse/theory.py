@@ -1,7 +1,4 @@
 import os
-import config
-
-DEFINITIONS_PATH = config.definitions
 
 
 def concatenate_axioms(lines):
@@ -76,13 +73,13 @@ def signatures(lines):
 
 
 # retrieve definitions given a relation signature
-def definitions(signature):
+def definitions(signature, path=None):
     file_name = str(signature) + ".in"
     lines = []
 
-    for definition_file in os.listdir(DEFINITIONS_PATH):
+    for definition_file in os.listdir(path):
         if definition_file == file_name:
-            lines = theory_setup(os.path.join(os.path.sep, DEFINITIONS_PATH, definition_file))
+            lines = theory_setup(os.path.join(os.path.sep, path, definition_file))
             # lines = theory_setup(path + "/" + definition_file)
 
     return lines
