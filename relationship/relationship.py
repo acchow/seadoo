@@ -12,13 +12,14 @@ read_expr = Expression.fromstring
 
 T1 = config.t1
 T2 = config.t2
+CREATE_FILES = config.create_files
 FILE_PATH = config.path
 DEFINITIONS_PATH = config.definitions
 ALT_FILE = config.alt
 META_FILE = config.meta
 
 
-def consistency(lines_t1, lines_t2):
+def consistency(lines_t1, lines_t2, new_dir):
     lines = lines_t1 + lines_t2
     assumptions = read_expr(lines[0])
 
@@ -35,8 +36,8 @@ def consistency(lines_t1, lines_t2):
         if model:
             consistent = True
             consistent_model = mb.model(format='cooked')
-            if FILE_PATH:
-                files.create_file("consistent_model", consistent_model)
+            if new_dir:
+                files.create_file(new_dir, "consistent_model", consistent_model)
 
     except Exception:
         consistent = "inconclusive"  # inconclusive results so far, no model found
@@ -54,8 +55,8 @@ def consistency(lines_t1, lines_t2):
             if proven:
                 consistent = False
                 inconsistent_proof = prover.proof()
-                if FILE_PATH:
-                    files.create_file("inconsistent_proof", inconsistent_proof)
+                if new_dir:
+                    files.create_file(new_dir, "inconsistent_proof", inconsistent_proof)
             else:
                 consistent = "inconclusive"
         except Exception:  # proof timeout, reached max time limit
@@ -64,7 +65,7 @@ def consistency(lines_t1, lines_t2):
     return consistent
 
 
-def entailment(lines_t1, lines_t2):
+def entailment(lines_t1, lines_t2, new_dir):
     saved_proofs = []
     entail = 0
     counter_file_created = False
@@ -118,8 +119,8 @@ def entailment(lines_t1, lines_t2):
                 # counterexample found. does not entail. create file for counterexample
                 if counterexample & (counter_file_created is False):
                     counterexample_model = mb.model(format='cooked')
-                    if FILE_PATH:
-                        files.create_file("counterexample_found", counterexample_model)
+                    if new_dir:
+                        files.create_file(new_dir, "counterexample_found", counterexample_model)
                     counter_file_created = True
 
             except Exception:
@@ -140,96 +141,119 @@ def entailment(lines_t1, lines_t2):
 
     # does entail. create files for proofs
     else:
-        if FILE_PATH:
+        if new_dir:
             for c, proof in enumerate(saved_proofs):
-                files.create_file("proof" + str(c + 1), proof)
+                files.create_file(new_dir, "proof" + str(c + 1), proof)
         return True
 
 
 def oracle(lines_t1, lines_t2, new_dir):
+    rel = ""
+    t1 = T1.replace(".in", "")
+    t2 = T2.replace(".in", "")
+
     # consistent
-    consistent = consistency(lines_t1, lines_t2)
+    consistent = consistency(lines_t1, lines_t2, new_dir)
 
     if consistent == "inconclusive":
         files.owl("inconclusive")
-        os.remove(FILE_PATH, T1 + "_" + T2)
-        return "inconclusive_t1_t2"
+        if new_dir:
+            files.delete_dir(os.path.join(FILE_PATH, new_dir))
+        rel = "inconclusive_t1_t2"
 
     elif consistent:
-        t1_entails_t2 = entailment(lines_t1, lines_t2)
-        t2_entails_t1 = entailment(lines_t2, lines_t1)
+        t1_entails_t2 = entailment(lines_t1, lines_t2, new_dir)
+        t2_entails_t1 = entailment(lines_t2, lines_t1, new_dir)
 
         # consistent with inconclusive entailment
         # if either side entailment is inconclusive, the relationship is deemed inconclusive (consistent only)
         if t1_entails_t2 == "inconclusive" or t2_entails_t1 == "inconclusive":
             files.owl("consistent")
-            if new_dir:
-                os.rename(FILE_PATH, "consistent_" + T1 + "_" + T2)
-            return "consistent_t1_t2"
+            files.rename_dir("consistent", new_dir, t1, t2)
+            rel = "consistent_t1_t2"
 
         # equivalent
         elif t1_entails_t2 & t2_entails_t1:
             if T1 != T2:
                 files.owl("equivalent")
-                if new_dir:
-                    os.rename(FILE_PATH, "equivalent_" + T1 + "_" + T2)
-            return "equivalent_t1_t2"
+                files.rename_dir("equivalent", new_dir, t1, t2)
+            rel = "equivalent_t1_t2"
 
         # independent
         elif (t1_entails_t2 is False) & (t2_entails_t1 is False):
             files.owl("independent")
-            if new_dir:
-                os.rename(FILE_PATH, "independent_" + T1 + "_" + T2)
-            return "independent_t1_t2"
+            files.rename_dir("independent", new_dir, t1, t2)
+            rel = "independent_t1_t2"
 
         # t1 entails t2
         elif t1_entails_t2:
             files.owl("entails")
-            if new_dir:
-                os.rename(FILE_PATH, "entails_" + T1 + "_" + T2)
-            return "entails_t1_t2"
+            files.rename_dir("entails", new_dir, t1, t2)
+            rel = "entails_t1_t2"
 
         # t2 entails t1
         elif t2_entails_t1:
-            files.owl("entails", T2, T1)
-            if new_dir:
-                os.rename(FILE_PATH, "entails_" + T2 + "_" + T1)
-            return "entails_t2_t1"
+            files.owl("entails", t2, t1)
+            files.rename_dir("entails", new_dir, t2, t1)
+            rel = "entails_t2_t1"
 
     # inconsistent
     elif consistent is False:
         files.owl("inconsistent")
-        if new_dir:
-            os.rename(FILE_PATH, "inconsistent_" + T1 + "_" + T2)
-        return "inconsistent_t1_t2"
+        files.rename_dir("inconsistent", new_dir, t1, t2)
+        rel = "inconsistent_t1_t2"
+
+    return rel
 
 
 # main program
-def main(file=False):
+def main():
     # check if relationship has been documented in owl file
     check_rel = files.check()
 
-    # check_rel = "nf"
+    check_rel = "nf"
 
     # nf = relationship not found in the file
     if check_rel == "nf":
+        t1 = T1.replace(".in", "")
+        t2 = T2.replace(".in", "")
+
         # create directory with proof and model files
-        if file:
-            try:
-                new_dir = T1.replace(".in", "") + "_" + T2.replace(".in", "")
-                os.mkdir(new_dir)
-            except OSError:     # directory already exists
-                new_dir = None
+        if CREATE_FILES:
+            # check if directory exists
+            exists = False
+            possibilities = ["consistent", "inconsistent", "equivalent", "independent", "entails"]
+
+            for rel in possibilities:
+                dir_12 = rel + "_" + t1 + "_" + t2
+                dir_21 = rel + "_" + t2 + "_" + t1
+                if os.path.isdir(os.path.join(FILE_PATH, dir_12)) or os.path.isdir(os.path.join(FILE_PATH, dir_21)):
+                    print("directory name", dir_12, "or", dir_21, "already exists. cannot create directory with "
+                                                                  "proofs and models unless renamed.")
+                    exists = True
+                    break
+
+            # create directory
+            if not exists:
+                try:
+                    new_dir = t1 + "_" + t2
+                    os.mkdir(os.path.join(FILE_PATH, new_dir))
+                except OSError:
+                    print("directory name", new_dir, "already exists. cannot create directory with proofs and "
+                                                     "models unless renamed.")
+                    new_dir = ""
+            else:
+                new_dir = ""
 
         else:
-            new_dir = None
+            new_dir = ""
 
         lines_t1 = theory.theory_setup(os.path.join(FILE_PATH, T1))
         lines_t2 = theory.theory_setup(os.path.join(FILE_PATH, T2))
 
         if not path.exists(DEFINITIONS_PATH):
             print("definitions directory ", DEFINITIONS_PATH, " not found")
-            relationship = "relationship cannot be found"
+            relationship = ""
         else:
             relationship = oracle(lines_t1, lines_t2, new_dir)
     else:
@@ -239,6 +263,4 @@ def main(file=False):
 
 
 if __name__ == "__main__":
-    # print(main())
-    main()
-
+    print(main())

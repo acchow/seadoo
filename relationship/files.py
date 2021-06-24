@@ -8,10 +8,23 @@ ALT_FILE = config.alt
 META_FILE = config.meta
 
 
-def create_file(name, contents):
-    new_path = os.path.join(FILE_PATH, name)
+def create_file(new_dir, name, contents):
+    new_path = os.path.join(FILE_PATH, new_dir, name)
     with open(new_path, "w+") as new_file:
         new_file.write(contents)
+
+
+def delete_dir(file_path):
+    for file in os.listdir(file_path):
+        os.remove(file)
+    os.rmdir(file_path)
+
+
+def rename_dir(rel, new_dir, t1, t2):
+    if new_dir:
+        new_name = rel + "_" + t1 + "_" + t2
+        new_path = os.path.join(FILE_PATH, new_dir)
+        os.rename(new_path, new_name)
 
 
 # update owl files
