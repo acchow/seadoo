@@ -1,6 +1,6 @@
-import config
+from p9_tools import config
 import os
-from insertion import insertion
+from p9_tools.insertion import insertion
 
 
 # construction of a hierarchy

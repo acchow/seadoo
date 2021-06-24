@@ -1,5 +1,5 @@
 import os
-import config
+from p9_tools import config
 
 DEFINITIONS_PATH = config.definitions
 

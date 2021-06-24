@@ -1,10 +1,7 @@
-"""
- August 2020
- By Amanda Chow
- This program extracts the p9 axioms from a .m4.out file
-"""
-
 import os
+from p9_tools import config
+
+FILE_PATH = config.path
 
 
 def extract_axioms(file_name):
@@ -28,19 +25,11 @@ def create_file(file_name):
         p9_file.write("".join(p9_axioms))
 
 
-def main(path):
-    for file_name in os.listdir(path):
+def main():
+    for file_name in os.listdir(FILE_PATH):
         if file_name.endswith(".m4.out"):
-            create_file(path + "/" + file_name)
+            create_file(os.path.join(FILE_PATH, file_name))
 
 
-# def output_files(ontology):
-#     os.chdir("cd Documents/GitHub/macleod/bin")
-#     for file_name in os.listdir():
-#         if file_name.endswith(".clif"):
-#             os.system("python3 check_consistency_new.py -f /Users/amandachow/Documents/GitHub/colore/ontologies/"
-#                       + ontology + "/" + file_name)
-
-
-main("/Users/amandachow/PycharmProjects/research_2021")
-# output_files("between")
+if __name__ == "__main__":
+    main()

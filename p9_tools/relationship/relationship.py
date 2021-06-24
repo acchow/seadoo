@@ -2,10 +2,10 @@ from nltk import *
 
 import os.path
 from os import path
-import config       # contains all specified file paths
+from p9_tools import config
 
-from relationship import files
-from parse import theory
+from p9_tools.relationship import files
+from p9_tools.parse import theory
 
 from nltk.sem import Expression
 read_expr = Expression.fromstring

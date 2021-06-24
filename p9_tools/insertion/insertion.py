@@ -1,7 +1,7 @@
-import config
-from parse import theory
-from relationship import relationship
-from insertion import remove_duplicate_chains
+from p9_tools import config
+from p9_tools.parse import theory
+from p9_tools.relationship import relationship
+from p9_tools.insertion import remove_duplicate_chains
 
 import pandas as pd
 

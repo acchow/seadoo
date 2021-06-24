@@ -1,4 +1,4 @@
-from parse import theory
+from p9_tools.parse import theory
 
 
 def extract_constants(lines):
