@@ -10,8 +10,6 @@ from p9_tools.parse import theory
 from nltk.sem import Expression
 read_expr = Expression.fromstring
 
-T1 = config.t1
-T2 = config.t2
 CREATE_FILES = config.create_files
 FILE_PATH = config.path
 DEFINITIONS_PATH = config.definitions
@@ -147,10 +145,10 @@ def entailment(lines_t1, lines_t2, new_dir):
         return True
 
 
-def oracle(lines_t1, lines_t2, new_dir):
+def oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir):
     rel = ""
-    t1 = T1.replace(".in", "")
-    t2 = T2.replace(".in", "")
+    t1 = t1_file.replace(".in", "")
+    t2 = t2_file.replace(".in", "")
 
     # consistent
     consistent = consistency(lines_t1, lines_t2, new_dir)
@@ -174,7 +172,7 @@ def oracle(lines_t1, lines_t2, new_dir):
 
         # equivalent
         elif t1_entails_t2 & t2_entails_t1:
-            if T1 != T2:
+            if t1 != t2:
                 files.owl("equivalent")
                 files.rename_dir("equivalent", new_dir, t1, t2)
             rel = "equivalent_t1_t2"
@@ -207,16 +205,16 @@ def oracle(lines_t1, lines_t2, new_dir):
 
 
 # main program
-def main():
+def main(t1_file=config.t1, t2_file=config.t2):
     # check if relationship has been documented in owl file
     check_rel = files.check()
 
-    check_rel = "nf"
+    # check_rel = "nf"
 
     # nf = relationship not found in the file
     if check_rel == "nf":
-        t1 = T1.replace(".in", "")
-        t2 = T2.replace(".in", "")
+        t1 = t1_file.replace(".in", "")
+        t2 = t2_file.replace(".in", "")
 
         # create directory with proof and model files
         if CREATE_FILES:
@@ -248,14 +246,14 @@ def main():
         else:
             new_dir = ""
 
-        lines_t1 = theory.theory_setup(os.path.join(FILE_PATH, T1))
-        lines_t2 = theory.theory_setup(os.path.join(FILE_PATH, T2))
+        lines_t1 = theory.theory_setup(os.path.join(FILE_PATH, t1_file))
+        lines_t2 = theory.theory_setup(os.path.join(FILE_PATH, t2_file))
 
         if not path.exists(DEFINITIONS_PATH):
             print("definitions directory ", DEFINITIONS_PATH, " not found")
             relationship = ""
         else:
-            relationship = oracle(lines_t1, lines_t2, new_dir)
+            relationship = oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir)
     else:
         relationship = check_rel
 

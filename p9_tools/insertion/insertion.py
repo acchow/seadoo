@@ -4,9 +4,14 @@ from p9_tools.relationship import relationship
 from p9_tools.insertion import remove_duplicate_chains
 
 import pandas as pd
+import os
+
+CSV_FILE = config.csv
+FUNCTION = config.function
+FILE_PATH = config.path
 
 
-def insertion(chain, in_chain, new_t=config.new_t, file_path=config.path, definitions_path=config.definitions):
+def insertion(chain, in_chain, new_t=config.new_t):
     top = []       # theories that entail theory
     bottom = []    # theories entailed by new theory
 
@@ -15,7 +20,8 @@ def insertion(chain, in_chain, new_t=config.new_t, file_path=config.path, defini
     found = False
 
     for i, t in enumerate(in_chain):
-        rel = relationship.main(new_t, t, True, file_path, definitions_path)
+        print("checking ", t)
+        rel = relationship.main(new_t, t)
 
         if rel == "entails_t1_t2":
             bottom.append(chain[i])
@@ -55,10 +61,9 @@ def insertion(chain, in_chain, new_t=config.new_t, file_path=config.path, defini
             return False
 
 
-def find_position(chain, low, high, new_t=config.new_t, insert=False,
-                  file_path=config.path, definitions_path=config.definitions):
+def find_position(chain, low, high, new_t=config.new_t):
     if low == high:
-        compare_low = relationship.main(new_t, chain[low], insert, file_path, definitions_path)
+        compare_low = relationship.main(new_t, chain[low])
         if compare_low == "entails_t1_t2":
             return low + 1
         elif compare_low == "entails_t2_t1":
@@ -70,7 +75,7 @@ def find_position(chain, low, high, new_t=config.new_t, insert=False,
         return low
 
     mid = (low+high)//2
-    compare_mid = relationship.main(new_t, chain[mid], insert, file_path, definitions_path)
+    compare_mid = relationship.main(new_t, chain[mid])
 
     # middle value
     if "equivalent" in compare_mid:
@@ -79,33 +84,29 @@ def find_position(chain, low, high, new_t=config.new_t, insert=False,
             return -1
         # found an equivalent theory
         else:
-            if insert:
-                return mid
-            else:
-                return chain[mid]
+            return chain[mid]
     # lower half
     elif compare_mid == "entails_t2_t1":
-        return find_position(chain, low, mid-1, new_t, insert, file_path, definitions_path)
+        return find_position(chain, low, mid-1, new_t)
     # upper half
     elif compare_mid == "entails_t1_t2":
-        return find_position(chain, mid+1, high, new_t, insert, file_path, definitions_path)
+        return find_position(chain, mid+1, high, new_t)
     # does not belong
     else:
         return -1
 
 
-def search(in_chain, new_t=config.new_t, file_path=config.path, definitions_path=config.definitions):
-    location = find_position(in_chain, 0, len(in_chain)-1, new_t, file_path, definitions_path)
+def search(in_chain, new_t=config.new_t):
+    location = find_position(in_chain, 0, len(in_chain)-1, new_t)
     if not isinstance(location, int):
         print("an equivalent theory is ", location)
     else:
         print("no equivalent theory found")
 
 
-def main(csv_file=config.csv, new_t=config.new_t, function=config.function,
-         file_path=config.path, definitions_path=config.definitions, hierarchy=False):
+def main(new_t=config.new_t, hierarchy=False):
     # open existing chain decomposition file, converted to DataFrame then lists
-    chains_df = pd.read_csv(csv_file)
+    chains_df = pd.read_csv(CSV_FILE)
     chains_list = []
     [chains_list.append(row) for row in chains_df]
     chains_list = chains_df.values.tolist()
@@ -120,20 +121,16 @@ def main(csv_file=config.csv, new_t=config.new_t, function=config.function,
 
     # first check if new theory is consistent
     try:
-        with open(new_t, "r") as f:
-            lines = f.readlines()
+        lines = theory.theory_setup(os.path.join(FILE_PATH, new_t))
     except FileNotFoundError:
         print("theory '" + new_t + "' not found")
         return
-    lines = theory.concatenate_axioms(lines)
-    theory.replace_symbol(lines, ".\n", "")
-    theory.replace_symbol(lines, "\t", "")
-    check_consistent = relationship.consistency(lines, [])
+
+    check_consistent = relationship.consistency(lines, [], new_dir="")
 
     if check_consistent is not True:
         print("your theory is inconsistent")
     else:
-
         print("original\n", chains_list)
 
         # update each existing chain
@@ -142,13 +139,12 @@ def main(csv_file=config.csv, new_t=config.new_t, function=config.function,
 
         for i, chain in enumerate(chains_list[:num_chains_start]):
 
-            if function == 1:   # insertion
-                insertion_results = insertion(chain, input_chains[i], new_t, file_path, definitions_path)
+            if FUNCTION == 1:   # insertion
+                insertion_results = insertion(chain, input_chains[i], new_t)
 
                 # new chain was created
                 if isinstance(insertion_results, list):
                     new_chain = insertion_results
-                    # print(new_chain)
 
                     chains_list.append(new_chain)
 
@@ -161,8 +157,8 @@ def main(csv_file=config.csv, new_t=config.new_t, function=config.function,
                 elif insertion_results:
                     inserted = True
 
-            elif function == 2:  # search for an equivalent theory
-                print(search(input_chains[i], new_t, definitions_path))
+            elif FUNCTION == 2:  # search for an equivalent theory
+                search(input_chains[i], new_t)
 
         # new theory has not been inserted anywhere. create a new chain
         # this shouldn't happen after full construction of the hierarchy; if the new theory
@@ -178,7 +174,7 @@ def main(csv_file=config.csv, new_t=config.new_t, function=config.function,
         print("here is the final list \n", chains_list)
 
         new_df = pd.DataFrame(chains_list)
-        new_df.to_csv(csv_file, mode="w", index=False)
+        new_df.to_csv(CSV_FILE, mode="w", index=False)
         print("chain decomposition is now updated")
 
 
