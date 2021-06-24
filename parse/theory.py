@@ -79,8 +79,7 @@ def definitions(signature, path=None):
 
     for definition_file in os.listdir(path):
         if definition_file == file_name:
-            lines = theory_setup(os.path.join(os.path.sep, path, definition_file))
-            # lines = theory_setup(path + "/" + definition_file)
+            lines = theory_setup(path + "/" + definition_file)
 
     return lines
 
