@@ -1,13 +1,15 @@
-from p9_tools import config
 import os
+from p9_tools import config
 from p9_tools.insertion import insertion
+
+FILE_PATH = config.path
 
 
 # construction of a hierarchy
-def construct_hierarchy(csv_file=config.csv, file_path=config.path, definitions_path=config.definitions):
-    for file_name in os.listdir(file_path):
+def construct_hierarchy():
+    for file_name in os.listdir(FILE_PATH):
         if file_name.endswith(".in"):
-            insertion.main(csv_file, file_name, 1, file_path, definitions_path, hierarchy=True)
+            insertion.main(file_name, True)
 
 
 construct_hierarchy()

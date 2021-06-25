@@ -20,7 +20,6 @@ def insertion(chain, in_chain, new_t=config.new_t):
     found = False
 
     for i, t in enumerate(in_chain):
-        print("checking ", t)
         rel = relationship.main(new_t, t)
 
         if rel == "entails_t1_t2":
