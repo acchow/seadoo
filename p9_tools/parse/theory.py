@@ -36,23 +36,27 @@ def replace_symbol(lines, symbol, new_symbol):
 
 
 def theory_setup(theory_name):
-    with open(theory_name, "r") as f:
-        lines = f.readlines()
-        lines = concatenate_axioms(lines)
-        # remove comments
-        for x, line in enumerate(lines):
-            while "%" in lines[x]:
-                lines.remove(lines[x])
+    try:
+        with open(theory_name, "r") as f:
+            lines = f.readlines()
+            lines = concatenate_axioms(lines)
+            # remove comments
+            for x, line in enumerate(lines):
+                while "%" in lines[x]:
+                    lines.remove(lines[x])
 
-        try:
-            while True:
-                lines.remove("\n")
-        except ValueError:
-            pass
-        replace_symbol(lines, ".", "")      # added this for definitions
-        replace_symbol(lines, ".\n", "")
-        replace_symbol(lines, "\t", "")
-    f.close()
+            try:
+                while True:
+                    lines.remove("\n")
+            except ValueError:
+                pass
+            replace_symbol(lines, ".", "")      # added this for definitions
+            replace_symbol(lines, ".\n", "")
+            replace_symbol(lines, "\t", "")
+        f.close()
+    except FileNotFoundError:
+        print("file", theory_name, "not found")
+        return False
     return lines
 
 
