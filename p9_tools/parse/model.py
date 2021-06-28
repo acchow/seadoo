@@ -1,13 +1,31 @@
 from p9_tools.parse import theory
+from p9_tools import config
+
+
+def alpha_constants(lines):
+    for i, line in enumerate(lines):
+        if "(" in line and ")" in line and \
+                "formulas(assumptions)" not in line and "end_of_list" not in line:
+
+            bracket_contents = line[line.index("(")+1:line.index(")")]
+            for j, c in enumerate(bracket_contents):
+                if c != "," and not c.isalpha():
+                    lines[i] = lines[i].replace(c, chr(int(c)+97))      # replace with alphabet letter
+
+    return lines
 
 
 def extract_constants(lines):
     unique_constants = []
-    for line in lines:
-        if "(" in line and "formulas(assumptions)" not in line and "end_of_list" not in line:
-            for c in range(line.index("(")+1, line.index(")")-1, 1):
-                while line[c] != "," and line[c] not in unique_constants:
-                    unique_constants.append(line[c])
+    for i, line in enumerate(lines):
+        if "(" in line and ")" in line and \
+                "formulas(assumptions)" not in line and "end_of_list" not in line:
+
+            bracket_contents = line[line.index("(")+1:line.index(")")]
+            constants = bracket_contents.split(",")
+            for c in constants:
+                if c not in unique_constants:
+                    unique_constants.append(c)
     return unique_constants
 
 
@@ -49,6 +67,7 @@ def model_setup(file_name):
         except ValueError:
             pass
 
+        model_spec_lines = alpha_constants(model_spec_lines)
         inequalities = make_inequalities(extract_constants(model_spec_lines))
         model_spec_lines += inequalities
 
@@ -58,3 +77,8 @@ def model_setup(file_name):
 
     f.close()
     return model_spec_lines
+
+
+if __name__ == "__main__":
+    print(model_setup(config.model))
+
