@@ -1,8 +1,13 @@
+from nltk import *
+
 import pandas as pd
 from p9_tools import config
-from p9_tools.relationship import relationship
+from p9_tools.relationship import relationship, files
 from p9_tools.parse import theory, model
 import os
+
+from nltk.sem import Expression
+read_expr = Expression.fromstring
 
 FILE_PATH = config.path
 EX_PATH = config.examples
@@ -101,6 +106,39 @@ def find_bracket(chain):
     return bracket
 
 
+def generate_model(t_weak, t_strong, new_dir, file_name):
+
+    negated_axioms = []
+    for axiom in t_strong:
+        if axiom not in t_weak:
+            negated_axioms.append("-" + axiom)
+
+    # theory_lines = list(set().union(t_weak, t_strong))
+    theory_lines = t_weak + negated_axioms
+
+    assumptions = read_expr(theory_lines[0])
+
+    # look for 10 models before timeout
+    mb = MaceCommand(None, [assumptions], max_models=10)
+    for c, added in enumerate(theory_lines[1:]):
+        mb.add_assumptions([read_expr(added)])
+
+    # use mb.build_model([assumptions]) to print the input
+    # consistent = "inconclusive"
+    try:
+        model = mb.build_model()
+        # found a model, the theories are consistent with each other
+        if model:
+            # consistent = True
+            consistent_model = mb.model(format='cooked')
+            if new_dir:
+                files.create_file(new_dir, file_name, consistent_model)
+    except LogicalExpressionException:
+        print("model not found")
+
+    return
+
+
 # finding all the brackets
 def main():
     # get the chain decomposition
@@ -119,6 +157,20 @@ def main():
         bracket = find_bracket(chain)
         if bracket != -1:
             all_brackets.append(bracket)
+
+    try:
+        new_dir = os.path.join(FILE_PATH, "models_to_classify")
+        os.mkdir(new_dir)
+    except FileExistsError:
+        new_dir = os.path.join(FILE_PATH, "models_to_classify")
+
+    # relationship.files.create_file(new_dir, "models_t")
+    for bracket in all_brackets:
+        if bracket[0] is not None and bracket[1] is not None:
+            generate_model(theory.theory_setup(os.path.join(FILE_PATH, bracket[0])),
+                           theory.theory_setup(os.path.join(FILE_PATH, bracket[1])),
+                           new_dir,
+                           "bracket_" + bracket[0].replace(".in", "") + "_" + bracket[1].replace(".in", ""))
 
     return all_brackets
 
