@@ -91,31 +91,33 @@ def find_bracket(chain):
 
     # no bracket
     if strong == -1 and weak == len(chain):
-        bracket = -1
+        bracket = [None, None]
 
     # one-sided brackets
     elif strong == -1:
-        bracket = [chain[weak], None]
+        bracket = [weak, None]
     elif weak == len(chain):
-        bracket = [None, chain[strong]]
+        bracket = [None, strong]
 
     # bracket found
     else:
-        bracket = [chain[weak], chain[strong]]
-
+        bracket = [weak, strong]
     return bracket
 
 
-def generate_model(t_weak, t_strong, new_dir, file_name):
+def upper_bound_model(t_weak_name, t_strong_name):
+    t_weak = theory.theory_setup(t_weak_name)
+    t_strong = theory.theory_setup(t_strong_name)
 
     negated_axioms = []
     for axiom in t_strong:
         if axiom not in t_weak:
             negated_axioms.append("-" + axiom)
-
-    # theory_lines = list(set().union(t_weak, t_strong))
     theory_lines = t_weak + negated_axioms
+    return theory_lines
 
+
+def generate_model(theory_lines, new_dir, file_name):
     assumptions = read_expr(theory_lines[0])
 
     # look for 10 models before timeout
@@ -133,15 +135,15 @@ def generate_model(t_weak, t_strong, new_dir, file_name):
             consistent_model = mb.model(format='cooked')
             if new_dir:
                 files.create_file(new_dir, file_name, consistent_model)
+            return True
+
     except LogicalExpressionException:
         print("model not found")
 
-    return
+    return False
 
 
-# finding all the brackets
-def main():
-    # get the chain decomposition
+def get_input_chains():
     chains_df = pd.read_csv(CSV_FILE)
     chains_list = []
     [chains_list.append(row) for row in chains_df]
@@ -150,13 +152,19 @@ def main():
     for i, c in enumerate(chains_list):
         chains_list[i] = list(filter(lambda a: pd.notna(a), c))
     input_chains = [[str(s) + ".in" for s in c] for c in chains_list]
+    return input_chains
+
+
+# finding all the brackets
+def main():
+    # chain decomposition in list form
+    input_chains = get_input_chains()
 
     # get the bracket from each chain
     all_brackets = []
     for i, chain in enumerate(input_chains):
-        bracket = find_bracket(chain)
-        if bracket != -1:
-            all_brackets.append(bracket)
+        bracket = [i] + find_bracket(chain)
+        all_brackets.append(bracket)
 
     try:
         new_dir = os.path.join(FILE_PATH, "models_to_classify")
@@ -164,17 +172,57 @@ def main():
     except FileExistsError:
         new_dir = os.path.join(FILE_PATH, "models_to_classify")
 
-    # relationship.files.create_file(new_dir, "models_t")
     for bracket in all_brackets:
-        if bracket[0] is not None and bracket[1] is not None:
-            generate_model(theory.theory_setup(os.path.join(FILE_PATH, bracket[0])),
-                           theory.theory_setup(os.path.join(FILE_PATH, bracket[1])),
-                           new_dir,
-                           "bracket_" + bracket[0].replace(".in", "") + "_" + bracket[1].replace(".in", ""))
+        if bracket[1] is None or bracket[2] is None:
+            print("no bracket found for chain", bracket[0])
+        else:
+            # dialogue phase
 
-    return all_brackets
+            # refine upper bound
+            ub_min = False
+            lb_theory = input_chains[bracket[0]][bracket[1]]
+            while ub_min is False and bracket[2] >= 0:
+                ub_theory = input_chains[bracket[0]][bracket[2]]
+                ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory.replace(".in", "")
+                # look for a model
+                if generate_model(upper_bound_model(lb_theory, ub_theory), new_dir, ub_model):
+                    ans = input("is " + os.path.join(new_dir, ub_model) + " an example? (y/n):\n")
+                    # omits a model
+                    if ans == 'y':
+                        bracket[2] -= 1
+                    else:
+                        ub_min = True
+                else:
+                    print("model cannot be generated for ", ub_model)
+                    ub_min = True
+
+            # refine lower bound
+            lb_max = False
+            while lb_max is False and bracket[1] < len(input_chains[bracket[0]]):
+                lb_theory = input_chains[bracket[0]][bracket[1]]
+                lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + ub_theory.replace(".in", "")
+                # look for a model
+                if generate_model(theory.theory_setup(lb_theory), new_dir, lb_model):
+                    ans = input("is " + os.path.join(new_dir, lb_model) + " an example? (y/n):\n")
+                    # contains an unintended model
+                    if ans == 'n':
+                        bracket[1] += 1  # move lower bound up
+                    else:
+                        lb_max = True
+
+            if bracket[1] == bracket[2]:
+                best_match = input_chains[bracket[0]][bracket[1]]
+                print("best matching theory from chain", bracket[0], "is", best_match)
+            elif bracket[1] > bracket[2]:
+                best_match = None
+                print("overlapped bracket, theory does not exist in chain", bracket[0] + 1)
+            else:
+                best_match = [bracket[1], bracket[2]]
+                print("bracket ", best_match, "cannot be further refined")
+
+    return best_match
 
 
 if __name__ == "__main__":
-    print(main())
+    main()
 
