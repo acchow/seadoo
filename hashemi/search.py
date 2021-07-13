@@ -105,23 +105,37 @@ def find_bracket(chain):
     return bracket
 
 
-def upper_bound_model(t_weak_name, t_strong_name):
+def setup_bracket_model(t_weak_name, t_to_negate_axioms):
+    print("t_weak", t_weak_name)
+    print("t_negate", t_to_negate_axioms)
+
+    def parse_to_compare(lines):
+        parsed = lines.copy()
+        symbols_to_remove = ["\n", " ", "(", ")"]
+        for s in symbols_to_remove:
+            theory.replace_symbol(parsed, s, "")
+        return parsed
+
     t_weak = theory.theory_setup(t_weak_name)
-    t_strong = theory.theory_setup(t_strong_name)
+    t_negate = theory.theory_setup(t_to_negate_axioms)
+
+    t_weak_parsed = parse_to_compare(t_weak)
+    t_negate_parsed = parse_to_compare(t_negate)
 
     negated_axioms = []
-    for axiom in t_strong:
-        if axiom not in t_weak:
-            negated_axioms.append("-" + axiom)
+    for i, axiom in enumerate(t_negate_parsed):
+        if axiom not in t_weak_parsed:
+            negated_axioms.append("-(" + t_negate[i] + ")")
     theory_lines = t_weak + negated_axioms
     return theory_lines
 
 
 def generate_model(theory_lines, new_dir, file_name):
+    print(theory_lines)
     assumptions = read_expr(theory_lines[0])
 
     # look for 10 models before timeout
-    mb = MaceCommand(None, [assumptions], max_models=10)
+    mb = MaceCommand(None, [assumptions], max_models=1)
     for c, added in enumerate(theory_lines[1:]):
         mb.add_assumptions([read_expr(added)])
 
@@ -136,8 +150,9 @@ def generate_model(theory_lines, new_dir, file_name):
             if new_dir:
                 files.create_file(new_dir, file_name, consistent_model)
             return True
-
     except LogicalExpressionException:
+        print("input error")
+    else:
         print("model not found")
 
     return False
@@ -175,6 +190,7 @@ def main():
     for bracket in all_brackets:
         if bracket[1] is None or bracket[2] is None:
             print("no bracket found for chain", bracket[0])
+            best_match = None
         else:
             # dialogue phase
 
@@ -185,8 +201,8 @@ def main():
                 ub_theory = input_chains[bracket[0]][bracket[2]]
                 ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory.replace(".in", "")
                 # look for a model
-                if generate_model(upper_bound_model(lb_theory, ub_theory), new_dir, ub_model):
-                    ans = input("is " + os.path.join(new_dir, ub_model) + " an example? (y/n):\n")
+                if generate_model(setup_bracket_model(lb_theory, ub_theory), new_dir, ub_model):
+                    ans = input("is " + os.path.join(new_dir, ub_model) + " an example? (y/n):")
                     # omits a model
                     if ans == 'y':
                         bracket[2] -= 1
@@ -200,15 +216,22 @@ def main():
             lb_max = False
             while lb_max is False and bracket[1] < len(input_chains[bracket[0]]):
                 lb_theory = input_chains[bracket[0]][bracket[1]]
+                try:
+                    lb_theory_next = input_chains[bracket[0]][bracket[1] + 1]   # subsequent theory in the chain
+                except IndexError:
+                    lb_theory_next = lb_theory
                 lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + ub_theory.replace(".in", "")
                 # look for a model
-                if generate_model(theory.theory_setup(lb_theory), new_dir, lb_model):
-                    ans = input("is " + os.path.join(new_dir, lb_model) + " an example? (y/n):\n")
+                if generate_model(setup_bracket_model(lb_theory, lb_theory_next), new_dir, lb_model):
+                    ans = input("is " + os.path.join(new_dir, lb_model) + " an example? (y/n):")
                     # contains an unintended model
                     if ans == 'n':
                         bracket[1] += 1  # move lower bound up
                     else:
                         lb_max = True
+                else:
+                    print("model cannot be generated for ", lb_model)
+                    lb_max = True
 
             if bracket[1] == bracket[2]:
                 best_match = input_chains[bracket[0]][bracket[1]]
@@ -218,7 +241,7 @@ def main():
                 print("overlapped bracket, theory does not exist in chain", bracket[0] + 1)
             else:
                 best_match = [bracket[1], bracket[2]]
-                print("bracket ", best_match, "cannot be further refined")
+                print("bracket", best_match, "cannot be further refined")
 
     return best_match
 
