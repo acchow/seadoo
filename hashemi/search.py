@@ -135,7 +135,7 @@ def generate_model(theory_lines, new_dir, file_name):
     assumptions = read_expr(theory_lines[0])
 
     # look for 10 models before timeout
-    mb = MaceCommand(None, [assumptions], max_models=1)
+    mb = MaceCommand(None, [assumptions], max_models=10)
     for c, added in enumerate(theory_lines[1:]):
         mb.add_assumptions([read_expr(added)])
 
