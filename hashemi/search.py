@@ -109,23 +109,16 @@ def setup_bracket_model(t_weak_name, t_to_negate_axioms):
     print("t_weak", t_weak_name)
     print("t_negate", t_to_negate_axioms)
 
-    def parse_to_compare(lines):
-        parsed = lines.copy()
-        symbols_to_remove = ["\n", " ", "(", ")"]
-        for s in symbols_to_remove:
-            theory.replace_symbol(parsed, s, "")
-        return parsed
-
     t_weak = theory.theory_setup(t_weak_name)
     t_negate = theory.theory_setup(t_to_negate_axioms)
 
-    t_weak_parsed = parse_to_compare(t_weak)
-    t_negate_parsed = parse_to_compare(t_negate)
-
     negated_axioms = []
-    for i, axiom in enumerate(t_negate_parsed):
-        if axiom not in t_weak_parsed:
-            negated_axioms.append("-(" + t_negate[i] + ")")
+    for i, axiom in enumerate(t_negate):
+        negated = ["-(" + axiom + ")"]
+
+        if relationship.consistency(t_weak, negated, new_dir=""):
+            negated_axioms += negated
+
     theory_lines = t_weak + negated_axioms
     return theory_lines
 
@@ -197,7 +190,7 @@ def main():
             # refine upper bound
             ub_min = False
             lb_theory = input_chains[bracket[0]][bracket[1]]
-            while ub_min is False and bracket[2] >= 0:
+            while ub_min is False and bracket[2] > 0:
                 ub_theory = input_chains[bracket[0]][bracket[2]]
                 ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory.replace(".in", "")
                 # look for a model
@@ -214,13 +207,14 @@ def main():
 
             # refine lower bound
             lb_max = False
-            while lb_max is False and bracket[1] < len(input_chains[bracket[0]]):
+            # while lb_max is False and bracket[1] < bracket[2]:
+            while lb_max is False and bracket[1] < len(input_chains[bracket[0]])-1:
                 lb_theory = input_chains[bracket[0]][bracket[1]]
-                try:
-                    lb_theory_next = input_chains[bracket[0]][bracket[1] + 1]   # subsequent theory in the chain
-                except IndexError:
-                    lb_theory_next = lb_theory
-                lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + ub_theory.replace(".in", "")
+                # try:
+                lb_theory_next = input_chains[bracket[0]][bracket[1] + 1]   # subsequent theory in the chain
+                #except IndexError:
+                    #lb_theory_next = lb_theory
+                lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + lb_theory_next.replace(".in", "")
                 # look for a model
                 if generate_model(setup_bracket_model(lb_theory, lb_theory_next), new_dir, lb_model):
                     ans = input("is " + os.path.join(new_dir, lb_model) + " an example? (y/n):")
