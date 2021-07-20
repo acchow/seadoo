@@ -67,8 +67,8 @@ def find_bracket(chain):
     for ex_file in os.listdir(EX_PATH):
         if ex_file.endswith(".in"):
             print("ex", ex_file)
-            print(model.model_setup(os.path.join(EX_PATH, ex_file)))
-            s = find_strong(chain, model.model_setup(os.path.join(EX_PATH, ex_file)))
+            print(model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True))
+            s = find_strong(chain, model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True))
             # update the maximum
             if s < strong:
                 strong = s
@@ -80,8 +80,8 @@ def find_bracket(chain):
     for cex_file in os.listdir(CEX_PATH):
         if cex_file.endswith(".in"):
             print("cex", cex_file)
-            print(model.model_setup(os.path.join(CEX_PATH, cex_file)))
-            w = find_weak(chain, model.model_setup(os.path.join(CEX_PATH, cex_file)))
+            print(model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True))
+            w = find_weak(chain, model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True))
             # update the minimum
             if w > weak:
                 weak = w

@@ -45,35 +45,51 @@ def make_inequalities(unique_constants):
     return statements
 
 
-def model_setup(file_name):
+def closure_axiom(unique_constants):
+    equalities = ""
+    for c in unique_constants:
+        temp = "(x=" + c + ")|"
+        equalities += temp
+    equalities = equalities.rstrip(equalities[-1])   # remove the last or symbol
+    axiom = ["(all x (" + equalities + "))"]
+    print(axiom)
+    return axiom
+
+
+def model_setup(file_name, closed_world=False):
     with open(file_name, "r") as f:
         model_spec_lines = f.readlines()
-        del model_spec_lines[0]         # formulas(assumptions)
-        del model_spec_lines[len(model_spec_lines)-1] # end_of_list
+        del model_spec_lines[0]                         # formulas(assumptions)
+        del model_spec_lines[len(model_spec_lines)-1]   # end_of_list
 
         # remove comments
         for x, line in enumerate(model_spec_lines):
             while "%" in line:
                 model_spec_lines.remove(model_spec_lines[x])
 
-        try:
-            while True:
-                model_spec_lines.remove("\n")
-        except ValueError:
-            pass
-        try:
-            while True:
-                model_spec_lines.remove("")
-        except ValueError:
-            pass
+        remove = ["\n", ""]
+        for item in remove:
+            try:
+                while True:
+                    model_spec_lines.remove(item)
+            except ValueError:
+                pass
 
         model_spec_lines = alpha_constants(model_spec_lines)
-        inequalities = make_inequalities(extract_constants(model_spec_lines))
+        constants = extract_constants(model_spec_lines)
+
+        # add inequalities for constants
+        inequalities = make_inequalities(constants)
         model_spec_lines += inequalities
 
-        model_spec_lines = theory.replace_symbol(model_spec_lines, ".\n", "")
-        model_spec_lines = theory.replace_symbol(model_spec_lines, "\n", "")
-        model_spec_lines = theory.replace_symbol(model_spec_lines, "\t", "")
+        if closed_world:
+            # add closure axiom
+            closure = closure_axiom(constants)
+            model_spec_lines += closure
+
+        symbols_to_remove = [".\n", "\n", "\t"]
+        for s in symbols_to_remove:
+            model_spec_lines = theory.replace_symbol(model_spec_lines, s, "")
 
     f.close()
     return model_spec_lines
