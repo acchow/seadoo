@@ -40,16 +40,10 @@ def theory_setup(theory_name):
         with open(theory_name, "r") as f:
             lines = f.readlines()
             lines = concatenate_axioms(lines)
-            # remove comments
-            for x, line in enumerate(lines):
-                while "%" in lines[x]:
-                    lines.remove(lines[x])
 
-            try:
-                while True:
-                    lines.remove("\n")
-            except ValueError:
-                pass
+            # remove comments
+            lines = [x for x in lines if "%" not in x and x != "\n" and x != ""]
+
             replace_symbol(lines, ".", "")      # added this for definitions
             replace_symbol(lines, ".\n", "")
             replace_symbol(lines, "\t", "")
@@ -87,7 +81,6 @@ def definitions(signature):
     for definition_file in os.listdir(DEFINITIONS_PATH):
         if definition_file == file_name:
             lines = theory_setup(os.path.join(os.path.sep, DEFINITIONS_PATH, definition_file))
-            # lines = theory_setup(path + "/" + definition_file)
 
     return lines
 

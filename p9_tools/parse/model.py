@@ -63,17 +63,7 @@ def model_setup(file_name, closed_world=False):
         del model_spec_lines[len(model_spec_lines)-1]   # end_of_list
 
         # remove comments
-        for x, line in enumerate(model_spec_lines):
-            while "%" in line:
-                model_spec_lines.remove(model_spec_lines[x])
-
-        remove = ["\n", ""]
-        for item in remove:
-            try:
-                while True:
-                    model_spec_lines.remove(item)
-            except ValueError:
-                pass
+        model_spec_lines = [x for x in model_spec_lines if "%" not in x and x != "\n" and x != ""]
 
         model_spec_lines = alpha_constants(model_spec_lines)
         constants = extract_constants(model_spec_lines)
