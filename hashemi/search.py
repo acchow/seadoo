@@ -107,7 +107,7 @@ def find_bracket(chain):
 
 def setup_bracket_model(t_weak_name, t_to_negate_axioms):
     print("t_weak", t_weak_name)
-    print("t_negate", t_to_negate_axioms)
+    print("t_negate_axioms", t_to_negate_axioms)
 
     t_weak = theory.theory_setup(t_weak_name)
     t_negate = theory.theory_setup(t_to_negate_axioms)
@@ -194,7 +194,10 @@ def main():
                 ub_theory = input_chains[bracket[0]][bracket[2]]
                 ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory.replace(".in", "")
                 # look for a model
-                if generate_model(setup_bracket_model(lb_theory, ub_theory), new_dir, ub_model):
+                if generate_model(setup_bracket_model(os.path.join(FILE_PATH, lb_theory),
+                                                      os.path.join(FILE_PATH, ub_theory)),
+                                  os.path.join(FILE_PATH, new_dir),
+                                  ub_model):
                     ans = input("is " + os.path.join(new_dir, ub_model) + " an example? (y/n):")
                     # omits a model
                     if ans == 'y':
@@ -210,13 +213,13 @@ def main():
             # while lb_max is False and bracket[1] < bracket[2]:
             while lb_max is False and bracket[1] < len(input_chains[bracket[0]])-1:
                 lb_theory = input_chains[bracket[0]][bracket[1]]
-                # try:
                 lb_theory_next = input_chains[bracket[0]][bracket[1] + 1]   # subsequent theory in the chain
-                #except IndexError:
-                    #lb_theory_next = lb_theory
                 lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + lb_theory_next.replace(".in", "")
                 # look for a model
-                if generate_model(setup_bracket_model(lb_theory, lb_theory_next), new_dir, lb_model):
+                if generate_model(setup_bracket_model(os.path.join(FILE_PATH, lb_theory),
+                                                      os.path.join(FILE_PATH, lb_theory_next)),
+                                  os.path.join(FILE_PATH, new_dir),
+                                  lb_model):
                     ans = input("is " + os.path.join(new_dir, lb_model) + " an example? (y/n):")
                     # contains an unintended model
                     if ans == 'n':
