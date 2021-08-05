@@ -9,7 +9,7 @@ def alpha_constants(lines):
 
             bracket_contents = line[line.index("(")+1:line.index(")")]
             for j, c in enumerate(bracket_contents):
-                if c != "," and not c.isalpha():
+                if c.isnumeric():
                     lines[i] = lines[i].replace(c, chr(int(c)+97))      # replace with alphabet letter
 
     return lines
