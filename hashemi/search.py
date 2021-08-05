@@ -12,6 +12,7 @@ read_expr = Expression.fromstring
 FILE_PATH = config.path
 EX_PATH = config.examples
 CEX_PATH = config.counterexamples
+TRANSLATIONS = config.translations
 CSV_FILE = config.csv
 
 
@@ -59,6 +60,40 @@ def find_weak(chain, model_lines):
     return weakest
 
 
+# function to identify the definitions required to pull from
+# parsing all the signatures that appear before an opening parentheses
+def extract_signatures(lines):
+    s = set()
+
+    for axiom in lines:
+        for i, char in enumerate(axiom):
+            if char == "(" and axiom[i-1].isalpha():
+                j = i-1
+                signature = ""
+                # accounts for signatures containing letters, numbers and underscores
+                while (axiom[j].isalpha() or axiom[j].isnumeric() or axiom[j] == "_") and j >= 0:
+                    signature = axiom[j] + signature    # appending letter to the front of string
+                    j -= 1
+                if signature:
+                    s.add(signature)
+    return s
+
+
+# retrieve translation definitions given a relation signature
+def translation_definitions(signature):
+    file_name = str(signature) + ".in"
+    # lines = []
+    definition = []     # to account for blank lines
+
+    for definition_file in os.listdir(TRANSLATIONS):
+        if definition_file == file_name:
+            with open(os.path.join(os.path.sep, TRANSLATIONS, definition_file), "r+") as f:
+                definition = theory.theory_setup(os.path.join(os.path.sep, TRANSLATIONS, definition_file))
+            # lines = theory_setup(os.path.join(os.path.sep, DEFINITIONS_PATH, definition_file))
+
+    return definition
+
+
 def find_bracket(chain):
     strong = len(chain)-1       # maximum index for strongest theory for examples
     weak = 0                    # minimum index for weakest theory for counterexamples
@@ -67,8 +102,17 @@ def find_bracket(chain):
     for ex_file in os.listdir(EX_PATH):
         if ex_file.endswith(".in"):
             print("ex", ex_file)
-            print(model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True))
-            s = find_strong(chain, model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True))
+            # print(model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True))
+
+            model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
+            signatures = extract_signatures(model_lines)
+            for s in signatures:
+                model_lines += translation_definitions(s)
+
+            print(model_lines)
+
+            s = find_strong(chain, model_lines)
+            # s = find_strong(chain, model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True))
             # update the maximum
             if s < strong:
                 strong = s
@@ -80,8 +124,17 @@ def find_bracket(chain):
     for cex_file in os.listdir(CEX_PATH):
         if cex_file.endswith(".in"):
             print("cex", cex_file)
-            print(model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True))
-            w = find_weak(chain, model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True))
+            # print(model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True))
+
+            model_lines = model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True)
+            signatures = extract_signatures(model_lines)
+            for s in signatures:
+                model_lines += translation_definitions(s)
+
+            print(model_lines)
+
+            w = find_weak(chain, model_lines)
+            # w = find_weak(chain, model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True))
             # update the minimum
             if w > weak:
                 weak = w
