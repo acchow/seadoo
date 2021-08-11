@@ -1,6 +1,6 @@
 # Semi-Automated Design of Ontologies
 
-Used in conjunction with the [Common Logic Repository](https://github.com/gruninger/colore)
+Used in conjunction with ontologies in the [Common Logic Repository](https://github.com/gruninger/colore)
 
 ## Installations and Setup
 1. [Python 3+](https://www.python.org/downloads/)
@@ -10,8 +10,9 @@ Used in conjunction with the [Common Logic Repository](https://github.com/grunin
 <br><br/>
 
 
-## **Hashemi Procedure**
-Generates an ontology that matches all user examples and counterexamples
+## **Hashemi Procedure Implementation**
+Finds the closest matching theories within a hierarchy, that are consistent with user example models and inconsistent
+with user counterexample models
 
 #### Additional Installations
 1. [Pandas](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html)
@@ -22,24 +23,30 @@ Generates an ontology that matches all user examples and counterexamples
 represented as linear chains (to construct a new hierarchy, see 
 [hierarchy construction](#insertion-and-hierarchy-construction))
 2. All ontology files listed in the chain decomposition from step 1 with axioms written 
-in Prover9 format; file names ending in ".in"
+in Prover9 syntax; all file names ending in ".in"
 3. Example and counterexample models in Mace4 cooked format 
-4. Definitions for all relations used in the hierarchy in Prover9 format 
+4. Definitions for all relations used in the hierarchy in Prover9 syntax 
+5. Translation definitions that map relations found in user models to relations found in the theories contained
+in the hierarchy 
+6. Create a Python file and name it `config.py`
 
 #### Paste the following into **config.py**
 <pre><code># replace strings with your directory paths
+create_files = False    
 path = "/PATH/TO/ALL/PACKAGES/AND/FILES"                         
-definitions = path + "/FOLDER/NAME/WITH/DEFINITIONS"           
+definitions = path + "/FOLDER/NAME/WITH/DEFINITIONS"    
+csv = path + "/NAME/OF/CSV/FILE"   
 examples = path + "/FOLDER/NAME/WITH/EXAMPLES"                 
 counterexamples = path + "/FOLDER/NAME/WITH/COUNTEREXAMPLES"   
 </code></pre>
 
 #### Run by command line
-Navigate to working directory, then 
+Navigate to working directory, then run
 `python3 -m hashemi.search`
 <br><br/>
 
 ## **Other Ontology Tools**
+Used for ontologies with axioms written in Prover9 syntax
 
 ### **Ontology Relationships**
 Checks for consistency and finds the relationship between two ontologies
