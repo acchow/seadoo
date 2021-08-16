@@ -227,6 +227,16 @@ def main():
         bracket = [i] + find_bracket(chain)
         all_brackets.append(bracket)
 
+    # singular best matches
+    best_match_axioms = set()
+
+    # bracket union
+    lb_axioms = set()
+    ub_axioms = set()
+
+    # answer report
+    answer_report = ["seadoo hashemi answer report\n\n"]
+
     try:
         new_dir = os.path.join(FILE_PATH, "models_to_classify")
         os.mkdir(new_dir)
@@ -285,15 +295,57 @@ def main():
 
             if bracket[1] == bracket[2]:
                 best_match = input_chains[bracket[0]][bracket[1]]
-                print("best matching theory from chain", bracket[0], "is", best_match)
+                for axiom in theory.theory_setup(os.path.join(FILE_PATH, best_match)):
+                    best_match_axioms.add(axiom)
+                print("best matching theory from chain", bracket[0] + 1, "is", best_match)
             elif bracket[1] > bracket[2]:
                 best_match = None
                 print("overlapped bracket, theory does not exist in chain", bracket[0] + 1)
             else:
-                best_match = [bracket[1], bracket[2]]
-                print("bracket", best_match, "cannot be further refined")
+                best_match = [input_chains[bracket[0]][bracket[1]], input_chains[bracket[0]][bracket[2]]]
+                for axiom in theory.theory_setup(os.path.join(FILE_PATH, input_chains[bracket[0]][bracket[1]])):
+                    lb_axioms.add(axiom)
+                for axiom in theory.theory_setup(os.path.join(FILE_PATH, input_chains[bracket[0]][bracket[2]])):
+                    ub_axioms.add(axiom)
+                print("bracket from chain", bracket[0] + 1, best_match, "cannot be further refined")
+            answer_report.append("chain " + str(bracket[0] + 1) + ": " + str(best_match) + "\n")
 
-    return best_match
+    # final answer
+    # best match axioms
+    if best_match_axioms:
+        answer_report.append("\n\nbest matching theory found:\n")
+        print("best matching theory: ")
+        for axiom in best_match_axioms:
+            answer_report.append(axiom + ".")
+            print(axiom)
+
+    # union of brackets
+    elif lb_axioms and ub_axioms:
+        answer_report.append("\n\nbest matching bracket found:\n")
+        print("best matching bracket")
+
+        answer_report.append("\nlower bound:")
+        print("lower bound: ")
+        for axiom in lb_axioms:
+            answer_report.append(axiom + ".\n")
+            print(axiom)
+
+        answer_report.append("\n\nupper bound:")
+        print("upper bound: ")
+        for axiom in ub_axioms:
+            answer_report.append(axiom + ".\n")
+            print(axiom)
+
+    # no matches
+    else:
+        answer_report.append("\n\nno best match exists")
+        print("no best match exists")
+
+    with open("test_answer_report.txt", "w") as f:
+        for line in answer_report:
+            f.write(line)
+
+    return answer_report
 
 
 if __name__ == "__main__":
