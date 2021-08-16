@@ -1,4 +1,5 @@
 # Semi-Automated Design of Ontologies
+[seadoo wiki for developers ](https://github.com/acchow/seadoo/wiki)
 
 Used in conjunction with ontologies in the [Common Logic Repository](https://github.com/gruninger/colore)
 
