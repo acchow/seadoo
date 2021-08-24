@@ -1,10 +1,11 @@
 from nltk import *
 
 import pandas as pd
-from p9_tools import config
+import config
 from p9_tools.relationship import relationship, files
 from p9_tools.parse import theory, model
 import os
+import time
 
 from nltk.sem import Expression
 read_expr = Expression.fromstring
@@ -14,6 +15,7 @@ EX_PATH = config.examples
 CEX_PATH = config.counterexamples
 TRANSLATIONS = config.translations
 CSV_FILE = config.csv
+ANSWER_REPORT = config.answer_reports
 
 
 # find the strongest theory in the chain that is consistent with the example
@@ -82,14 +84,12 @@ def extract_signatures(lines):
 # retrieve translation definitions given a relation signature
 def translation_definitions(signature):
     file_name = str(signature) + ".in"
-    # lines = []
     definition = []     # to account for blank lines
 
     for definition_file in os.listdir(TRANSLATIONS):
         if definition_file == file_name:
             with open(os.path.join(os.path.sep, TRANSLATIONS, definition_file), "r+") as f:
                 definition = theory.theory_setup(os.path.join(os.path.sep, TRANSLATIONS, definition_file))
-            # lines = theory_setup(os.path.join(os.path.sep, DEFINITIONS_PATH, definition_file))
 
     return definition
 
@@ -341,7 +341,13 @@ def main():
         answer_report.append("\n\nno best match exists")
         print("no best match exists")
 
-    with open("test_answer_report.txt", "w") as f:
+    time_obj = time.localtime(time.time())
+    answer_report_file_name = "hashemi-report-%d%d%d-%d%d%d" \
+                              % \
+                              (time_obj.tm_mday, time_obj.tm_mon, time_obj.tm_year,
+                               time_obj.tm_hour, time_obj.tm_min, time_obj.tm_sec) \
+                              + ".txt"
+    with open(os.path.join(os.path.sep, ANSWER_REPORT, answer_report_file_name), "w") as f:
         for line in answer_report:
             f.write(line)
 
