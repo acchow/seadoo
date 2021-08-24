@@ -1,5 +1,5 @@
 import os
-from p9_tools import config
+import config
 
 T1 = config.t1
 T2 = config.t2

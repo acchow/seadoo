@@ -1,5 +1,5 @@
 import os
-from p9_tools import config
+import config
 
 FILE_PATH = config.path
 

@@ -2,7 +2,7 @@ from nltk import *
 
 import os.path
 from os import path
-from p9_tools import config
+import config
 
 from p9_tools.relationship import files
 from p9_tools.parse import theory
@@ -209,7 +209,7 @@ def main(t1_file=config.t1, t2_file=config.t2):
     # check if relationship has been documented in owl file
     check_rel = files.check()
 
-    # check_rel = "nf"
+    check_rel = "nf"
 
     # nf = relationship not found in the file
     if check_rel == "nf":

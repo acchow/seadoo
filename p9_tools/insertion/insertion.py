@@ -1,4 +1,4 @@
-from p9_tools import config
+import config
 from p9_tools.parse import theory
 from p9_tools.relationship import relationship
 from p9_tools.insertion import remove_duplicate_chains

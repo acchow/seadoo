@@ -1,5 +1,5 @@
 from p9_tools.parse import theory
-from p9_tools import config
+import config
 
 
 def alpha_constants(lines):
