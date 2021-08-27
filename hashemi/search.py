@@ -101,7 +101,7 @@ def find_bracket(chain):
     # find strongest theory that is consistent with all examples
     for ex_file in os.listdir(EX_PATH):
         if ex_file.endswith(".in"):
-            print("ex", ex_file)
+            print("\nexample", ex_file)
             # print(model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True))
 
             model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
@@ -109,7 +109,7 @@ def find_bracket(chain):
             for s in signatures:
                 model_lines += translation_definitions(s)
 
-            print(model_lines)
+            # print(model_lines)
 
             s = find_strong(chain, model_lines)
             # s = find_strong(chain, model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True))
@@ -123,7 +123,7 @@ def find_bracket(chain):
     # find weakest theory that is not consistent with all counterexamples
     for cex_file in os.listdir(CEX_PATH):
         if cex_file.endswith(".in"):
-            print("cex", cex_file)
+            print("\ncounterexample", cex_file)
             # print(model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True))
 
             model_lines = model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True)
@@ -131,7 +131,7 @@ def find_bracket(chain):
             for s in signatures:
                 model_lines += translation_definitions(s)
 
-            print(model_lines)
+            # print(model_lines)
 
             w = find_weak(chain, model_lines)
             # w = find_weak(chain, model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True))
@@ -159,8 +159,8 @@ def find_bracket(chain):
 
 
 def setup_bracket_model(t_weak_name, t_to_negate_axioms):
-    print("t_weak", t_weak_name)
-    print("t_negate_axioms", t_to_negate_axioms)
+    # print("t_weak", t_weak_name)
+    # print("t_negate_axioms", t_to_negate_axioms)
 
     t_weak = theory.theory_setup(t_weak_name)
     t_negate = theory.theory_setup(t_to_negate_axioms)
@@ -177,7 +177,7 @@ def setup_bracket_model(t_weak_name, t_to_negate_axioms):
 
 
 def generate_model(theory_lines, new_dir, file_name):
-    print(theory_lines)
+    # print(theory_lines)
     assumptions = read_expr(theory_lines[0])
 
     # look for 10 models before timeout
@@ -223,6 +223,7 @@ def main():
 
     # get the bracket from each chain
     all_brackets = []
+    print("\nDISCOVERY PHASE")
     for i, chain in enumerate(input_chains):
         bracket = [i] + find_bracket(chain)
         all_brackets.append(bracket)
@@ -243,13 +244,14 @@ def main():
     except FileExistsError:
         new_dir = os.path.join(FILE_PATH, "models_to_classify")
 
+    print("\n\nDIALOGUE PHASE\n")
+
     for bracket in all_brackets:
         if bracket[1] is None or bracket[2] is None:
             print("no bracket found for chain", bracket[0])
-            best_match = None
+            best_match = "no bracket found"
         else:
             # dialogue phase
-
             # refine upper bound
             ub_min = False
             lb_theory = input_chains[bracket[0]][bracket[1]]
@@ -290,25 +292,25 @@ def main():
                     else:
                         lb_max = True
                 else:
-                    print("model cannot be generated for ", lb_model)
+                    print("model cannot be generated for ", lb_model, "\n")
                     lb_max = True
 
             if bracket[1] == bracket[2]:
                 best_match = input_chains[bracket[0]][bracket[1]]
                 for axiom in theory.theory_setup(os.path.join(FILE_PATH, best_match)):
                     best_match_axioms.add(axiom)
-                print("best matching theory from chain", bracket[0] + 1, "is", best_match)
+                print("best matching theory from chain", bracket[0] + 1, "is", best_match, "\n")
             elif bracket[1] > bracket[2]:
-                best_match = None
-                print("overlapped bracket, theory does not exist in chain", bracket[0] + 1)
+                best_match = "no bracket found"
+                print("overlapped bracket, theory does not exist in chain", bracket[0] + 1, "\n")
             else:
                 best_match = [input_chains[bracket[0]][bracket[1]], input_chains[bracket[0]][bracket[2]]]
                 for axiom in theory.theory_setup(os.path.join(FILE_PATH, input_chains[bracket[0]][bracket[1]])):
                     lb_axioms.add(axiom)
                 for axiom in theory.theory_setup(os.path.join(FILE_PATH, input_chains[bracket[0]][bracket[2]])):
                     ub_axioms.add(axiom)
-                print("bracket from chain", bracket[0] + 1, best_match, "cannot be further refined")
-            answer_report.append("chain " + str(bracket[0] + 1) + ": " + str(best_match) + "\n")
+                print("bracket from chain", bracket[0] + 1, best_match, "cannot be further refined\n")
+        answer_report.append("chain " + str(bracket[0] + 1) + ": " + str(best_match) + "\n")
 
     # final answer
     # best match axioms

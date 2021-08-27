@@ -52,7 +52,6 @@ def closure_axiom(unique_constants):
         equalities += temp
     equalities = equalities.rstrip(equalities[-1])   # remove the last or symbol
     axiom = ["(all x (" + equalities + "))"]
-    print(axiom)
     return axiom
 
 
