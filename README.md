@@ -88,7 +88,6 @@ and follow instructions to specify your use case and directory paths.
 ### Use Case 1 and 2
 #### Run by command line
 Navigate to working directory, then run `python3 -m p9_tools.insertion.insertion`
-<br><br/>
 
 ### Use Case 3
 #### Run by command line
