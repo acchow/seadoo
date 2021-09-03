@@ -1,78 +1,96 @@
 # Semi-Automated Design of Ontologies
-[seadoo wiki for developers ](https://github.com/acchow/seadoo/wiki)
 
-Used in conjunction with ontologies in the [Common Logic Repository](https://github.com/gruninger/colore)
+Used in conjunction with logical and mathematical theories (i.e., ontologies) found 
+in the [Common Logic Ontology Repository](https://github.com/gruninger/colore). For 
+further research and development, see the 
+[SEADOO wiki](https://github.com/acchow/seadoo/wiki). 
 
-## Installations and Setup
+#### Installations
 1. [Python 3+](https://www.python.org/downloads/)
 2. [NLTK](https://www.nltk.org/install.html)
 3. [Prover9/Mace4 (LADR)](https://www.cs.unm.edu/~mccune/prover9/download/)
-4. Create a Python file named config.py in the main directory containing all packages used
+4. [Pandas](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html)
 <br><br/>
 
+## **hashemi**
+Implementation of the Hashemi procedure. Constructs the closest matching theory to 
+models provided by the user (consistent with all examples and inconsistent with all counterexamples)
+using existing axioms from a *chain decomposition of theories. 
+Generates additional models for user to classify as intended or unintended. Final answer containing
+best matching axioms are generated in an answer report (.txt file). 
 
-## **Hashemi Procedure Implementation**
-Finds the closest matching theories within a hierarchy, that are consistent with user example models and inconsistent
-with user counterexample models
-
-#### Additional Installations
-1. [Pandas](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html)
-2. relationship package
+*chain decomposition: hierarchy of theories represented as linear chains, where one path from root to
+leaf theory is equivalent to one chain
 
 #### Files Required
-1. Comma-separated values (.csv) file containing an existing hierarchy of ontologies, 
-represented as linear chains (to construct a new hierarchy, see 
-[hierarchy construction](#insertion-and-hierarchy-construction))
-2. All ontology files listed in the chain decomposition from step 1 with axioms written 
-in Prover9 syntax; all file names ending in ".in"
-3. Example and counterexample models in Mace4 cooked format 
-4. Definitions for all relations used in the hierarchy in Prover9 syntax 
-5. Translation definitions that map relations found in user models to relations found in the theories contained
-in the hierarchy 
-6. Create a Python file and name it `config.py`
+1. Chain decomposition in a .csv file ([construct a new one](#insertion-and-hierarchy-construction))
+2. Theory files containing respective axioms (in Prover9 syntax) for each theory listed in the 
+chain decomposition
+3. Model files in Mace4 'cooked' format, classified as examples and counterexamples (place examples
+and counterexamples in separate directories)
+4. Definition files for non-primitive relations used in 
+the theories (use the relation signature as the file name)
+5. Translation definition files that map relations in the models to 
+relations in the theories (use the relation name in the models as the file name)
 
-#### Paste the following into **config.py**
-<pre><code># replace strings with your directory paths
-create_files = False    
-path = "/PATH/TO/ALL/PACKAGES/AND/FILES"                         
-definitions = path + "/FOLDER/NAME/WITH/DEFINITIONS"    
-csv = path + "/NAME/OF/CSV/FILE"   
-examples = path + "/FOLDER/NAME/WITH/EXAMPLES"                 
-counterexamples = path + "/FOLDER/NAME/WITH/COUNTEREXAMPLES"   
-</code></pre>
+Notes: 
+* for #2-5, name all files with the suffix ".in"
+* all axioms must be written in Prover9 syntax
+
+#### Directory configurations
+1. Open the [hashemi config template](https://github.com/acchow/seadoo/blob/master/hashemi/hashemi-config-template.py)
+and follow instructions to specify your directory paths for theories, models, etc. 
+2. Rename the file to `config.py`
+3. Place it in the root directory 
 
 #### Run by command line
 Navigate to working directory, then run
 `python3 -m hashemi.search`
 <br><br/>
 
-## **Other Ontology Tools**
-Used for ontologies with axioms written in Prover9 syntax
+## **p9_tools**
+Additional packages used for [hashemi](#hashemi). Can also be used independently as tools
+for theories in Prover9 syntax. The [parse](https://github.com/acchow/seadoo/tree/master/p9_tools/parse) 
+module is required for all other functionality. 
 
-### **Ontology Relationships**
-Checks for consistency and finds the relationship between two ontologies
+## **relationship**
+Checks for consistency and finds the relationship between two theories. 
+There are 6 different outcomes:
+1. equivalent
+2. one theory entails another 
+3. independent 
+4. consistent 
+5. inconsistent
+6. inconclusive 
+
+#### Directory configurations
+1. Open the [relationship config template](https://github.com/acchow/seadoo/blob/master/p9_tools/relationship-config-template.py)
+and follow instructions to specify your directory paths. 
+2. Rename the file to `config.py`
+3. Place it in the root directory 
 
 #### Run by command line
-`python3 -m relationship.relationship`
+Navigate to working directory, then run `python3 -m p9_tools.relationship.relationship`
 <br><br/>
 
-### **Insertion and Hierarchy Construction**
-Inserts a theory into a provided chain decomposition file in csv format, or searches for an equivalent theory to user input. 
-The first row of the csv file must contain a list of integers from zero to the length of the longest existing chain. 
-If this is an empty csv file (constructing a new hierarchy), enter the number 0 at the first position (row 0, col 0) before running.
+## **insertion**
+There are 3 use cases for this package: 
+1. Insert a theory into an existing chain decomposition
+2. Search for an equivalent theory in an existing chain decomposition
+3. Construct a new chain decomposition 
 
-#### Additional Installations
-1. [Pandas](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html)
-2. relationship package
+#### Directory configurations
+1. Open the [insertion config template](https://github.com/acchow/seadoo/blob/master/p9_tools/insertion-config-template.py)
+and follow instructions to specify your use case and directory paths. 
+2. Rename the file to `config.py`
+3. Place it in the root directory 
 
+###Use Case 1 and 2
 #### Run by command line
-`python3 -m insertion.insertion`
+Navigate to working directory, then run `python3 -m p9_tools.insertion.insertion`
 <br><br/>
 
-### Parser for translated P9 axioms
-Extracts translated Prover9 axioms from .m4.out files generated into the output folder
-by the [CLIF-P9 translator program on macleod](https://github.com/thahmann/macleod/wiki/macleod-python3-(beta)-GUI-setup) 
-
+###Use Case 3
 #### Run by command line
-`python3 translation.py`
-
+Navigate to working directory, then run `python3 -m p9_tools.insertion.construct`
+<br><br/>
