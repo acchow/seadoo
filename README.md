@@ -36,6 +36,7 @@ relations in the theories (use the relation name in the models as the file name)
 Notes: 
 * for #2-5, name all files with the suffix ".in"
 * all axioms must be written in Prover9 syntax
+* write all comments with a period at the end 
 
 #### Directory configurations
 1. Open the [hashemi config template](https://github.com/acchow/seadoo/blob/master/hashemi/hashemi-config-template.py)
@@ -57,7 +58,7 @@ module is required for all other functionality.
 Checks for consistency and finds the relationship between two theories. 
 There are 6 different outcomes:
 1. equivalent
-2. one theory entails another 
+2. one theory entails the other 
 3. independent 
 4. consistent 
 5. inconsistent
@@ -75,9 +76,9 @@ Navigate to working directory, then run `python3 -m p9_tools.relationship.relati
 
 ## **insertion**
 There are 3 use cases for this package: 
-1. Insert a theory into an existing chain decomposition
-2. Search for an equivalent theory in an existing chain decomposition
-3. Construct a new chain decomposition 
+1. Insert a theory into an existing chain decomposition (.csv file)
+2. Search for an equivalent theory in an existing chain decomposition (.csv file)
+3. Construct a new chain decomposition
 
 #### Directory configurations
 1. Open the [insertion config template](https://github.com/acchow/seadoo/blob/master/p9_tools/insertion-config-template.py)
