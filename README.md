@@ -1,16 +1,19 @@
 # Semi-Automated Design of Ontologies
 
 Used in conjunction with logical and mathematical theories (i.e., ontologies) found 
-in the [Common Logic Ontology Repository](https://github.com/gruninger/colore). For 
-further research and development, see the 
-[SEADOO wiki](https://github.com/acchow/seadoo/wiki). 
+in the [Common Logic Ontology Repository (COLORE)](https://github.com/gruninger/colore). 
+For further research and development, see the [SEADOO wiki](https://github.com/acchow/seadoo/wiki). 
 
-#### Installations
-1. [Python 3+](https://www.python.org/downloads/)
-2. [NLTK](https://www.nltk.org/install.html)
-3. [Prover9/Mace4 (LADR)](https://www.cs.unm.edu/~mccune/prover9/download/)
-4. [Pandas](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html)
-<br><br/>
+## Setup
+```
+python3 -m venv venv                    //Create virtual environment
+source venv/bin/activate                //Activate
+pip install -r requirements.txt         //Install requirements
+```
+
+## Install theorem prover
+[Prover9/Mace4 (LADR)](https://www.cs.unm.edu/~mccune/prover9/download/)
+<br/>
 
 ## **hashemi**
 Implementation of the Hashemi procedure. Constructs the closest matching theory to 
@@ -23,7 +26,7 @@ best matching axioms are generated in an answer report (.txt file).
 leaf theory is equivalent to one chain
 
 #### Files Required
-1. Chain decomposition in a .csv file ([construct a new one](#insertion-and-hierarchy-construction))
+1. Chain decomposition in a .csv file ([learn how to construct a new one](#insertion-and-hierarchy-construction))
 2. Theory files containing respective axioms (in Prover9 syntax) for each theory listed in the 
 chain decomposition
 3. Model files in Mace4 'cooked' format, classified as examples and counterexamples (place examples
@@ -33,21 +36,17 @@ the theories (use the relation signature as the file name)
 5. Translation definition files that map relations in the models to 
 relations in the theories (use the relation name in the models as the file name)
 
-Notes: 
+Important notes: 
 * for #2-5, name all files with the suffix ".in"
 * all axioms must be written in Prover9 syntax
-* write all comments with a period at the end 
+* write all comments with a period at the end
 
-#### Directory configurations
-1. Open the [hashemi config template](https://github.com/acchow/seadoo/blob/master/hashemi/hashemi-config-template.py)
-and follow instructions to specify your directory paths for theories, models, etc. 
-2. Rename the file to `config.py`
-3. Place it in the root directory 
-
-#### Run by command line
-Navigate to working directory, then run
-`python3 -m hashemi.search`
-<br><br/>
+#### Run hashemi procedure from /seadoo
+```
+mv ~/seadoo/hashemi/hashemi_config_template.py ~/seadoo/config.py       //Follow instructions for setup in config.py
+python3 -m hashemi.search
+```
+<br/>
 
 ## **p9_tools**
 Additional packages used for [hashemi](#hashemi). Can also be used independently as tools
@@ -64,15 +63,12 @@ There are 6 different outcomes:
 5. inconsistent
 6. inconclusive 
 
-#### Directory configurations
-1. Open the [relationship config template](https://github.com/acchow/seadoo/blob/master/p9_tools/relationship-config-template.py)
-and follow instructions to specify your directory paths. 
-2. Rename the file to `config.py`
-3. Place it in the root directory 
-
-#### Run by command line
-Navigate to working directory, then run `python3 -m p9_tools.relationship.relationship`
-<br><br/>
+#### Run relationship from seadoo/
+```
+mv ~/seadoo/p9_tools/relationship/relationship_config_template.py ~/seadoo/config.py             //Follow instructions for setup in config.py
+python3 -m p9_tools.relationship.relationship
+```
+<br/>
 
 ## **insertion**
 There are 3 use cases for this package: 
@@ -80,17 +76,18 @@ There are 3 use cases for this package:
 2. Search for an equivalent theory in an existing chain decomposition (.csv file)
 3. Construct a new chain decomposition
 
-#### Directory configurations
-1. Open the [insertion config template](https://github.com/acchow/seadoo/blob/master/p9_tools/insertion-config-template.py)
-and follow instructions to specify your use case and directory paths. 
-2. Rename the file to `config.py`
-3. Place it in the root directory 
-
 ### Use Case 1 and 2
-#### Run by command line
-Navigate to working directory, then run `python3 -m p9_tools.insertion.insertion`
+#### Run insertion from seadoo/
+```
+mv ~/seadoo/p9_tools/insertion_config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
+python3 -m p9_tools.insertion.insertion
+```
 
 ### Use Case 3
-#### Run by command line
-Navigate to working directory, then run `python3 -m p9_tools.insertion.construct`
+#### Run construct from seadoo/
+```
+mv ~/seadoo/p9_tools/insertion/insertion_config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
+touch <name_of_chain_decomp>.csv                                                  //Open this file and add a 0 as the first entry
+python3 -m p9_tools.insertion.construct
+```
 <br><br/>

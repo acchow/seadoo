@@ -1,2 +1,10 @@
-# Python
+//Python
+venv
+__pycache__
 config.py
+
+//Testing files
+*.csv
+*.in
+*.owl
+*.txt
