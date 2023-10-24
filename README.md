@@ -79,7 +79,7 @@ There are 3 use cases for this package:
 ### Use Case 1 and 2
 #### Run insertion from seadoo/
 ```
-mv ~/seadoo/p9_tools/insertion_config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
+mv ~/seadoo/p9_tools/insertion/insertion_config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
 python3 -m p9_tools.insertion.insertion
 ```
 
