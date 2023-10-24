@@ -4,12 +4,26 @@ Used in conjunction with logical and mathematical theories (i.e., ontologies) fo
 in the [Common Logic Ontology Repository (COLORE)](https://github.com/gruninger/colore). 
 For further research and development, see the [SEADOO wiki](https://github.com/acchow/seadoo/wiki). 
 
-## Setup
+## Environment Setup
 ```
 python3 -m venv venv                    //Create virtual environment
 source venv/bin/activate                //Activate
 pip install -r requirements.txt         //Install requirements
 ```
+
+## Misc. Files Setup
+**These should be moved to the directory where the ontology files are stored on your local system `(e.g., ~/seadoo/ontologies/orderings/)` after they are created using the commands below.**
+The definitions directory contains any translation definition files that are used to map relations to models. 
+This directory can be empty. 
+The .owl files contain any relationships that have already been determined between 2 theories. They are 
+populated by the relationship scripts. This speeds up checking and allows the procedures to skip theorem proving
+the next time the theories are encountered.
+```
+mkdir definitions
+touch metatheory.owl
+touch alt-metatheory.owl
+```
+<br/>
 
 ## Install theorem prover
 [Prover9/Mace4 (LADR)](https://www.cs.unm.edu/~mccune/prover9/download/)
@@ -18,7 +32,7 @@ pip install -r requirements.txt         //Install requirements
 ## **hashemi**
 Implementation of the Hashemi procedure. Constructs the closest matching theory to 
 models provided by the user (consistent with all examples and inconsistent with all counterexamples)
-using existing axioms from a *chain decomposition of theories. 
+using existing axioms from a *chsain decomposition of theories. 
 Generates additional models for user to classify as intended or unintended. Final answer containing
 best matching axioms are generated in an answer report (.txt file). 
 
