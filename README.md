@@ -1,5 +1,5 @@
 # Semi-Automated Design of Ontologies
-
+# Emily's branch
 Used in conjunction with logical and mathematical theories (i.e., ontologies) found 
 in the [Common Logic Ontology Repository (COLORE)](https://github.com/gruninger/colore). 
 For further research and development, see the [SEADOO wiki](https://github.com/acchow/seadoo/wiki). 
