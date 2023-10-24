@@ -18,3 +18,6 @@ definitions = os.path.join(os.path.sep, path, "definitions")    # directory cont
 new_t = "new-theory-name.in"                        # name of new theory input file
 csv = os.path.join(os.path.sep, path, ".csv")       # csv with chains or where new chains will be constructed
 function = 1                                        # 1 to insert, 2 to search for an equivalent theory to new_t
+
+t1 = ".in"
+t2 = ".in"
