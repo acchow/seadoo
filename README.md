@@ -26,7 +26,11 @@ touch alt-metatheory.owl
 <br/>
 
 ## Install theorem prover
-[Prover9/Mace4 (LADR)](https://www.cs.unm.edu/~mccune/prover9/download/)
+[Prover9/Mace4 (LADR)](https://www.cs.unm.edu/~mccune/prover9/download/) <br />
+Then, add the following line to your run command config file (i.e., `~/.zshrc` (Mac), `~/.bashrc` (Linux))
+```
+export PATH="~/<file_location_of_installed_prover/LADR-2009-11A/bin:$PATH"
+```
 <br/>
 
 ## **hashemi**
