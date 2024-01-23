@@ -42,8 +42,14 @@ def theory_setup(theory_name):
             lines = concatenate_axioms(lines)
 
             # remove comments
-            lines = [x for x in lines if "%" not in x and x != "\n" and x != ""]
-
+            
+            for i in range(len(lines)):
+                if "%" in lines[i]:
+                    idx = lines[i].find("%")
+                    idx2 = lines[i].find("\n",idx+2)
+                    lines[i] = lines[i][idx2:]
+            lines = [x for x in lines if x != "\n" and x != ""]
+        
             replace_symbol(lines, ".", "")      # added this for definitions
             replace_symbol(lines, ".\n", "")
             replace_symbol(lines, "\t", "")
