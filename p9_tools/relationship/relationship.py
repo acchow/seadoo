@@ -11,7 +11,7 @@ from nltk.sem import Expression
 read_expr = Expression.fromstring
 
 CREATE_FILES = config.create_files
-FILE_PATH = config.path
+FILE_PATH = config.hierarchy
 DEFINITIONS_PATH = config.definitions
 ALT_FILE = config.alt
 META_FILE = config.meta
@@ -249,11 +249,12 @@ def main(t1_file=config.t1, t2_file=config.t2):
         lines_t1 = theory.theory_setup(os.path.join(FILE_PATH, t1_file))
         lines_t2 = theory.theory_setup(os.path.join(FILE_PATH, t2_file))
 
-        if not path.exists(DEFINITIONS_PATH):
-            print("definitions directory ", DEFINITIONS_PATH, " not found")
-            relationship = ""
-        else:
-            relationship = oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir)
+        relationship = ""
+        if lines_t1 and lines_t2: 
+            if not path.exists(DEFINITIONS_PATH):
+                print("definitions directory ", DEFINITIONS_PATH, " not found")
+            else:
+                relationship = oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir)
     else:
         relationship = check_rel
 
