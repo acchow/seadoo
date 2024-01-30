@@ -1,5 +1,4 @@
 from nltk import *
-
 import pandas as pd
 import config
 from p9_tools.relationship import relationship, files
@@ -10,7 +9,8 @@ import time
 from nltk.sem import Expression
 read_expr = Expression.fromstring
 
-FILE_PATH = config.path
+HIER_PATH = config.hierarchy
+SEARCH_PATH = config.hashemi
 EX_PATH = config.examples
 CEX_PATH = config.counterexamples
 TRANSLATIONS = config.translations
@@ -20,12 +20,12 @@ ANSWER_REPORT = config.answer_reports
 
 # find the strongest theory in the chain that is consistent with the example
 def find_strong(chain, model_lines):
-    i = len(chain)-1    # starting index from the end
+    i = len(chain)-1        # starting index from the end
     consistent = False
-    strongest = -1       # index of strongest consistent theory
+    strongest = -1          # index of strongest consistent theory
 
     while i >= 0 and not consistent:
-        theory_lines = theory.theory_setup(os.path.join(FILE_PATH, chain[i]))
+        theory_lines = theory.theory_setup(os.path.join(HIER_PATH, chain[i]))
         if theory_lines:
             consistent = relationship.consistency(model_lines, theory_lines,new_dir="")
             # found maximal consistent theory
@@ -47,7 +47,7 @@ def find_weak(chain, model_lines):
     weakest = len(chain)
 
     while i <= max_index and consistent:
-        theory_lines = theory.theory_setup(os.path.join(FILE_PATH, chain[i]))
+        theory_lines = theory.theory_setup(os.path.join(HIER_PATH, chain[i]))
         if theory_lines:
             consistent = relationship.consistency(model_lines, theory_lines, new_dir="")
             # found minimal inconsistent theory
@@ -220,7 +220,6 @@ def get_input_chains():
 def main():
     # chain decomposition in list form
     input_chains = get_input_chains()
-
     # get the bracket from each chain
     all_brackets = []
     print("\nDISCOVERY PHASE")
@@ -239,10 +238,10 @@ def main():
     answer_report = ["seadoo hashemi answer report\n\n"]
 
     try:
-        new_dir = os.path.join(FILE_PATH, "models_to_classify")
+        new_dir = os.path.join(SEARCH_PATH, "models_to_classify")
         os.mkdir(new_dir)
     except FileExistsError:
-        new_dir = os.path.join(FILE_PATH, "models_to_classify")
+        new_dir = os.path.join(SEARCH_PATH, "models_to_classify")
 
     print("\n\nDIALOGUE PHASE\n")
 
@@ -257,11 +256,11 @@ def main():
             lb_theory = input_chains[bracket[0]][bracket[1]]
             while ub_min is False and bracket[2] > 0:
                 ub_theory = input_chains[bracket[0]][bracket[2]]
-                ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory.replace(".in", "")
+                ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory
                 # look for a model
-                if generate_model(setup_bracket_model(os.path.join(FILE_PATH, lb_theory),
-                                                      os.path.join(FILE_PATH, ub_theory)),
-                                  os.path.join(FILE_PATH, new_dir),
+                if generate_model(setup_bracket_model(os.path.join(HIER_PATH, lb_theory),
+                                                      os.path.join(HIER_PATH, ub_theory)),
+                                  os.path.join(HIER_PATH, new_dir),
                                   ub_model):
                     ans = input("is " + os.path.join(new_dir, ub_model) + " an example? (y/n):")
                     # omits a model
@@ -279,11 +278,11 @@ def main():
             while lb_max is False and bracket[1] < len(input_chains[bracket[0]])-1:
                 lb_theory = input_chains[bracket[0]][bracket[1]]
                 lb_theory_next = input_chains[bracket[0]][bracket[1] + 1]   # subsequent theory in the chain
-                lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + lb_theory_next.replace(".in", "")
+                lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + lb_theory_next
                 # look for a model
-                if generate_model(setup_bracket_model(os.path.join(FILE_PATH, lb_theory),
-                                                      os.path.join(FILE_PATH, lb_theory_next)),
-                                  os.path.join(FILE_PATH, new_dir),
+                if generate_model(setup_bracket_model(os.path.join(HIER_PATH, lb_theory),
+                                                      os.path.join(HIER_PATH, lb_theory_next)),
+                                  os.path.join(HIER_PATH, new_dir),
                                   lb_model):
                     ans = input("is " + os.path.join(new_dir, lb_model) + " an example? (y/n):")
                     # contains an unintended model
@@ -297,7 +296,7 @@ def main():
 
             if bracket[1] == bracket[2]:
                 best_match = input_chains[bracket[0]][bracket[1]]
-                for axiom in theory.theory_setup(os.path.join(FILE_PATH, best_match)):
+                for axiom in theory.theory_setup(os.path.join(HIER_PATH, best_match)):
                     best_match_axioms.add(axiom)
                 print("best matching theory from chain", bracket[0] + 1, "is", best_match, "\n")
             elif bracket[1] > bracket[2]:
@@ -305,9 +304,9 @@ def main():
                 print("overlapped bracket, theory does not exist in chain", bracket[0] + 1, "\n")
             else:
                 best_match = [input_chains[bracket[0]][bracket[1]], input_chains[bracket[0]][bracket[2]]]
-                for axiom in theory.theory_setup(os.path.join(FILE_PATH, input_chains[bracket[0]][bracket[1]])):
+                for axiom in theory.theory_setup(os.path.join(HIER_PATH, input_chains[bracket[0]][bracket[1]])):
                     lb_axioms.add(axiom)
-                for axiom in theory.theory_setup(os.path.join(FILE_PATH, input_chains[bracket[0]][bracket[2]])):
+                for axiom in theory.theory_setup(os.path.join(HIER_PATH, input_chains[bracket[0]][bracket[2]])):
                     ub_axioms.add(axiom)
                 print("bracket from chain", bracket[0] + 1, best_match, "cannot be further refined\n")
         answer_report.append("chain " + str(bracket[0] + 1) + ": " + str(best_match) + "\n")
@@ -344,7 +343,7 @@ def main():
         print("no best match exists")
 
     time_obj = time.localtime(time.time())
-    answer_report_file_name = "hashemi-report-%d%d%d-%d%d%d" \
+    answer_report_file_name = "hashemi_report_%d%d%d-%d%d%d" \
                               % \
                               (time_obj.tm_mday, time_obj.tm_mon, time_obj.tm_year,
                                time_obj.tm_hour, time_obj.tm_min, time_obj.tm_sec) \
