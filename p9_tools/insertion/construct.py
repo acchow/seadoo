@@ -2,7 +2,7 @@ import os
 import config
 from p9_tools.insertion import insertion
 
-FILE_PATH = config.path
+FILE_PATH = config.hierarchy
 
 
 # construction of a hierarchy

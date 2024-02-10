@@ -18,7 +18,7 @@ definitions = os.path.join(os.path.sep, path, "definitions")    # directory cont
 csv = os.path.join(os.path.sep, hierarchy, ".csv")                          # csv with chains
 examples = os.path.join(os.path.sep, hashemi, "examples")                   # directory to examples
 counterexamples = os.path.join(os.path.sep, hashemi, "counterexamples")     # directory to counterexamples
-translations = os.path.join(os.path.sep, path, "")                          # directory to translation definitions
+#translations = os.path.join(os.path.sep, path, "")                         # directory to translation definitions
 answer_reports = os.path.join(os.path.sep, hashemi, "answer_reports")
 
 # relationship for t1 and t2
