@@ -8,7 +8,7 @@ import os
 
 CSV_FILE = config.csv
 FUNCTION = config.function
-FILE_PATH = config.path
+FILE_PATH = config.hierarchy
 
 
 def insertion(chain, in_chain, new_t=config.new_t):
