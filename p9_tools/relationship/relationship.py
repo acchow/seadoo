@@ -12,7 +12,7 @@ from nltk.sem import Expression
 read_expr = Expression.fromstring
 
 CREATE_FILES = config.create_files
-FILE_PATH = config.hierarchy
+FILE_PATH = config.repo
 DEFINITIONS_PATH = config.definitions
 ALT_FILE = config.alt
 META_FILE = config.meta
@@ -154,7 +154,7 @@ def entailment(lines_t1, lines_t2, new_dir):
         return True
 
 
-def oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir):
+def oracle(hier, t1_file, t2_file, lines_t1, lines_t2, new_dir):
     rel = ""
     t1 = t1_file.replace(".in", "")
     t2 = t2_file.replace(".in", "")
@@ -165,7 +165,7 @@ def oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir):
     if consistent == "inconclusive":
         files.owl("inconclusive")
         if new_dir:
-            files.delete_dir(os.path.join(FILE_PATH, new_dir))
+            files.delete_dir(os.path.join(FILE_PATH, hier, new_dir))
         rel = "inconclusive_t1_t2"
 
     elif consistent:
@@ -214,7 +214,7 @@ def oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir):
 
 
 # main program
-def main(t1_file=config.t1, t2_file=config.t2):
+def main(hier=config.hierarchy, t1_file=config.t1, t2_file=config.t2):
     # check if relationship has been documented in owl file
     check_rel = files.check()
 
@@ -234,7 +234,7 @@ def main(t1_file=config.t1, t2_file=config.t2):
             for rel in possibilities:
                 dir_12 = rel + "_" + t1 + "_" + t2
                 dir_21 = rel + "_" + t2 + "_" + t1
-                if os.path.isdir(os.path.join(FILE_PATH, dir_12)) or os.path.isdir(os.path.join(FILE_PATH, dir_21)):
+                if os.path.isdir(os.path.join(FILE_PATH, hier, dir_12)) or os.path.isdir(os.path.join(FILE_PATH, hier, dir_21)):
                     print("directory name", dir_12, "or", dir_21, "already exists. cannot create directory with "
                                                                   "proofs and models unless renamed.")
                     exists = True
@@ -244,7 +244,7 @@ def main(t1_file=config.t1, t2_file=config.t2):
             if not exists:
                 try:
                     new_dir = t1 + "_" + t2
-                    os.mkdir(os.path.join(FILE_PATH, new_dir))
+                    os.mkdir(os.path.join(FILE_PATH, hier, new_dir))
                 except OSError:
                     print("directory name", new_dir, "already exists. cannot create directory with proofs and "
                                                      "models unless renamed.")
@@ -255,15 +255,15 @@ def main(t1_file=config.t1, t2_file=config.t2):
         else:
             new_dir = ""
 
-        lines_t1 = theory.theory_setup(os.path.join(FILE_PATH, t1_file))
-        lines_t2 = theory.theory_setup(os.path.join(FILE_PATH, t2_file))
+        lines_t1 = theory.theory_setup(os.path.join(FILE_PATH, hier, t1_file))
+        lines_t2 = theory.theory_setup(os.path.join(FILE_PATH, hier, t2_file))
 
         relationship = ""
         if lines_t1 and lines_t2: 
             if not path.exists(DEFINITIONS_PATH):
                 print("definitions directory ", DEFINITIONS_PATH, " not found")
             else:
-                relationship = oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir)
+                relationship = oracle(hier, t1_file, t2_file, lines_t1, lines_t2, new_dir)
     else:
         relationship = check_rel
 

@@ -11,7 +11,7 @@ from mysql.connector import Error
 from nltk.sem import Expression
 read_expr = Expression.fromstring
 
-HIER_PATH = config.hierarchy
+REPO_PATH = config.repo
 SEARCH_PATH = config.hashemi
 EX_PATH = config.examples
 CEX_PATH = config.counterexamples
@@ -20,13 +20,13 @@ ANSWER_REPORT = config.answer_reports
 
 
 # find the strongest theory in the chain that is consistent with the example
-def find_strong(chain, model_lines):
+def find_strong(hier, chain, model_lines):
     i = len(chain)-1        # starting index from the end
     consistent = False
     strongest = -1          # index of strongest consistent theory
 
     while i >= 0 and not consistent:
-        theory_lines = theory.theory_setup(os.path.join(HIER_PATH, chain[i]))
+        theory_lines = theory.theory_setup(os.path.join(REPO_PATH, hier, chain[i]))
         if theory_lines:
             consistent = relationship.consistency(model_lines, theory_lines,new_dir="")
             # found maximal consistent theory
@@ -41,14 +41,14 @@ def find_strong(chain, model_lines):
 
 
 # find weakest theory that is not consistent with the counterexample
-def find_weak(chain, model_lines):
+def find_weak(hier, chain, model_lines):
     i = 0
     max_index = len(chain)-1
     consistent = True
     weakest = len(chain)
 
     while i <= max_index and consistent:
-        theory_lines = theory.theory_setup(os.path.join(HIER_PATH, chain[i]))
+        theory_lines = theory.theory_setup(os.path.join(REPO_PATH, hier, chain[i]))
         if theory_lines:
             consistent = relationship.consistency(model_lines, theory_lines, new_dir="")
             # found minimal inconsistent theory
@@ -95,7 +95,7 @@ def translation_definitions(signature):
     return definition
 
 
-def find_bracket(chain):
+def find_bracket(hier, chain):
     strong = len(chain)-1       # maximum index for strongest theory for examples
     weak = 0                    # minimum index for weakest theory for counterexamples
 
@@ -110,7 +110,7 @@ def find_bracket(chain):
             for s in signatures:
                 model_lines += translation_definitions(s)
 
-            s = find_strong(chain, model_lines)
+            s = find_strong(hier, chain, model_lines)
             # update the maximum
             if s < strong:
                 strong = s
@@ -129,7 +129,7 @@ def find_bracket(chain):
             for s in signatures:
                 model_lines += translation_definitions(s)
 
-            w = find_weak(chain, model_lines)
+            w = find_weak(hier, chain, model_lines)
             # update the minimum
             if w > weak:
                 weak = w
@@ -198,7 +198,7 @@ def generate_model(theory_lines, new_dir, file_name):
 
 
 def get_input_chains(hier):
-    chains_df = pd.read_csv(os.path.join(os.path.sep, HIER_PATH, hier + ".csv"))
+    chains_df = pd.read_csv(os.path.join(os.path.sep, REPO_PATH, hier, hier + ".csv"))
     chains_list = []
     [chains_list.append(row) for row in chains_df]
     chains_list = chains_df.values.tolist()
@@ -239,7 +239,7 @@ def main():
     temp = get_hierarchies()
     nondecomp = []
     for hier in temp: 
-        if os.path.isfile(os.path.join(os.path.sep, HIER_PATH, hier + ".csv")): 
+        if os.path.isfile(os.path.join(os.path.sep, REPO_PATH, hier, hier+".csv")): 
             nondecomp.append(hier)
         else: 
             print("chain decomposition csv for hierarchy", hier, "not found")
@@ -252,7 +252,7 @@ def main():
         all_brackets = []
         print("\nDISCOVERY PHASE")
         for i, chain in enumerate(input_chains):
-            bracket = [i] + find_bracket(chain)
+            bracket = [i] + find_bracket(hier, chain)
             all_brackets.append(bracket)
 
         # singular best matches
@@ -278,19 +278,27 @@ def main():
             if bracket[1] is None or bracket[2] is None:
                 print("no bracket found for chain", bracket[0])
                 best_match = "no bracket found"
+            elif bracket[1] == bracket[2]: 
+                best_match = input_chains[bracket[0]][bracket[1]]
+                for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, best_match)):
+                    best_match_axioms.add(axiom)
+                print("best matching theory from chain", bracket[0] + 1, "is", best_match, "\n")
             else:
                 # dialogue phase
                 # refine upper bound
                 ub_min = False
+                print(input_chains)
+                print(bracket)
                 lb_theory = input_chains[bracket[0]][bracket[1]]
                 while ub_min is False and bracket[2] > 0:
                     ub_theory = input_chains[bracket[0]][bracket[2]]
                     ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory
                     # look for a model
-                    if generate_model(setup_bracket_model(os.path.join(HIER_PATH, lb_theory),
-                                                        os.path.join(HIER_PATH, ub_theory)),
-                                    os.path.join(HIER_PATH, new_dir),
-                                    ub_model):
+                    print(os.path.join(REPO_PATH, hier, lb_theory), os.path.join(REPO_PATH, hier, ub_theory), os.path.join(REPO_PATH, hier, new_dir))
+                    if generate_model(setup_bracket_model(os.path.join(REPO_PATH, hier, lb_theory),
+                                                          os.path.join(REPO_PATH, hier, ub_theory)),
+                                                          os.path.join(REPO_PATH, hier, new_dir),
+                                                          ub_model):
                         ans = input("is " + os.path.join(new_dir, ub_model) + " an example? (y/n):")
                         # omits a model
                         if ans == 'y':
@@ -309,10 +317,10 @@ def main():
                     lb_theory_next = input_chains[bracket[0]][bracket[1] + 1]   # subsequent theory in the chain
                     lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + lb_theory_next
                     # look for a model
-                    if generate_model(setup_bracket_model(os.path.join(HIER_PATH, lb_theory),
-                                                        os.path.join(HIER_PATH, lb_theory_next)),
-                                    os.path.join(HIER_PATH, new_dir),
-                                    lb_model):
+                    if generate_model(setup_bracket_model(os.path.join(REPO_PATH, hier, lb_theory),
+                                                          os.path.join(REPO_PATH, hier, lb_theory_next)),
+                                                          os.path.join(REPO_PATH, hier, new_dir),
+                                                          lb_model):
                         ans = input("is " + os.path.join(new_dir, lb_model) + " an example? (y/n):")
                         # contains an unintended model
                         if ans == 'n':
@@ -325,7 +333,7 @@ def main():
 
                 if bracket[1] == bracket[2]:
                     best_match = input_chains[bracket[0]][bracket[1]]
-                    for axiom in theory.theory_setup(os.path.join(HIER_PATH, best_match)):
+                    for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, best_match)):
                         best_match_axioms.add(axiom)
                     print("best matching theory from chain", bracket[0] + 1, "is", best_match, "\n")
                 elif bracket[1] > bracket[2]:
@@ -333,9 +341,9 @@ def main():
                     print("overlapped bracket, theory does not exist in chain", bracket[0] + 1, "\n")
                 else:
                     best_match = [input_chains[bracket[0]][bracket[1]], input_chains[bracket[0]][bracket[2]]]
-                    for axiom in theory.theory_setup(os.path.join(HIER_PATH, input_chains[bracket[0]][bracket[1]])):
+                    for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, input_chains[bracket[0]][bracket[1]])):
                         lb_axioms.add(axiom)
-                    for axiom in theory.theory_setup(os.path.join(HIER_PATH, input_chains[bracket[0]][bracket[2]])):
+                    for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, input_chains[bracket[0]][bracket[2]])):
                         ub_axioms.add(axiom)
                     print("bracket from chain", bracket[0] + 1, best_match, "cannot be further refined\n")
             answer_report.append("chain " + str(bracket[0] + 1) + ": " + str(best_match) + "\n")
@@ -380,7 +388,7 @@ def main():
         with open(os.path.join(os.path.sep, ANSWER_REPORT, answer_report_file_name), "w") as f:
             for line in answer_report:
                 f.write(line)
-
+            print('\nanswer report', answer_report_file_name, 'created.\n')
         answer_reports.append(answer_report)
     return answer_reports
 
