@@ -103,17 +103,14 @@ def find_bracket(chain):
     for ex_file in os.listdir(EX_PATH):
         if ex_file.endswith(".in"):
             print("\nexample", ex_file)
-            # print(model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True))
-
             model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
+            
+            # add translations if provided
             signatures = extract_signatures(model_lines)
             for s in signatures:
                 model_lines += translation_definitions(s)
 
-            # print(model_lines)
-
             s = find_strong(chain, model_lines)
-            # s = find_strong(chain, model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True))
             # update the maximum
             if s < strong:
                 strong = s
@@ -125,17 +122,14 @@ def find_bracket(chain):
     for cex_file in os.listdir(CEX_PATH):
         if cex_file.endswith(".in"):
             print("\ncounterexample", cex_file)
-            # print(model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True))
-
             model_lines = model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True)
+            
+            # add translations if provided
             signatures = extract_signatures(model_lines)
             for s in signatures:
                 model_lines += translation_definitions(s)
 
-            # print(model_lines)
-
             w = find_weak(chain, model_lines)
-            # w = find_weak(chain, model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True))
             # update the minimum
             if w > weak:
                 weak = w
@@ -178,7 +172,6 @@ def setup_bracket_model(t_weak_name, t_to_negate_axioms):
 
 
 def generate_model(theory_lines, new_dir, file_name):
-    # print(theory_lines)
     assumptions = read_expr(theory_lines[0])
 
     # look for 10 models before timeout
@@ -187,12 +180,11 @@ def generate_model(theory_lines, new_dir, file_name):
         mb.add_assumptions([read_expr(added)])
 
     # use mb.build_model([assumptions]) to print the input
-    # consistent = "inconclusive"
+    model = False
     try:
-        model = mb.build_model()
+        model = relationship.build_model(mb)
         # found a model, the theories are consistent with each other
         if model:
-            # consistent = True
             consistent_model = mb.model(format='cooked')
             if new_dir:
                 files.create_file(new_dir, file_name, consistent_model)
@@ -281,7 +273,8 @@ def main():
             
         print("\n\nDIALOGUE PHASE\n")
 
-        for bracket in all_brackets:
+        for i, bracket in enumerate(all_brackets):
+            print('checking if bracket',i,'can be refined...')
             if bracket[1] is None or bracket[2] is None:
                 print("no bracket found for chain", bracket[0])
                 best_match = "no bracket found"
@@ -391,6 +384,6 @@ def main():
         answer_reports.append(answer_report)
     return answer_reports
 
+
 if __name__ == "__main__":
     main()
-    #get_hierarchies()

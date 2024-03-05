@@ -1,4 +1,5 @@
 from nltk import *
+import timeout_decorator
 
 import os.path
 from os import path
@@ -17,6 +18,11 @@ ALT_FILE = config.alt
 META_FILE = config.meta
 
 
+@timeout_decorator.timeout(30)
+def build_model(mb: MaceCommand): 
+    return mb.build_model()
+
+
 def consistency(lines_t1, lines_t2, new_dir):
     lines = lines_t1 + lines_t2
     assumptions = read_expr(lines[0])
@@ -28,8 +34,9 @@ def consistency(lines_t1, lines_t2, new_dir):
 
     # use mb.build_model([assumptions]) to print the input
     consistent = "inconclusive"
+    model = False
     try:
-        model = mb.build_model()
+        model = build_model(mb)
         # found a model, the theories are consistent with each other
         if model:
             consistent = True
@@ -112,7 +119,9 @@ def entailment(lines_t1, lines_t2, new_dir):
 
             # use mb.build_model([assumptions]) to print the input
             try:
-                counterexample = mb.build_model()
+                #counterexample = mb.build_model()
+                counterexample = False
+                counterexample = build_model(mb)
 
                 # counterexample found. does not entail. create file for counterexample
                 if counterexample & (counter_file_created is False):
