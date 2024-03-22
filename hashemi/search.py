@@ -395,8 +395,6 @@ def hashemi(hier: str):
     return answer_report
 
 
-
-
 def find_nondecomp(): 
     #generalize
     nd = get_hierarchies_by_type(1)   # 1 relation for nondecomp 
@@ -407,24 +405,9 @@ def find_nondecomp():
         if ex_file.endswith(".in"):
             print("\nexample", ex_file)
             model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
-            print(model_lines)
             temp = extract_signatures(model_lines)
-            for key in temp: 
-                temp[key]['ex_axioms'] = temp[key].pop('axioms')
             nd_map.update(temp)
 
-    # get from counterexamples 
-    for cex_file in os.listdir(CEX_PATH):
-        if cex_file.endswith(".in"): 
-            print("\ncounterexample", cex_file)
-            model_lines = model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True)
-            temp = extract_signatures(model_lines)
-            for key in temp: 
-                if key not in nd_map: 
-                    nd_map[key] = temp[key]
-                else: 
-                    nd_map[key]['cex_axioms'] = temp[key]['axioms']
-    
     # compare the axioms for each signature with every root theory 
     for key in nd_map: 
         nd_map[key]['nd'] = []
@@ -438,21 +421,13 @@ def find_nondecomp():
             if not os.path.isfile(rt_path): 
                 print('root theory', rt_name, 'not found in', rt_path, '. skipping...')
                 continue
-
-            #rt_lines = theory.theory_setup(os.path.join(REPO_PATH, hier, rtheory_name))
+            
+            # consistency check with examples 
             rt_lines = theory.theory_setup(rt_path)
-
-            match = True
-            if 'ex_axioms' in nd_map[key] and not relationship.consistency(nd_map[key]['ex_axioms'], rt_lines, new_dir=""): 
-                match = False
-            if 'cex_axioms' in nd_map[key] and relationship.consistency(nd_map[key]['cex_axioms'], rt_lines, new_dir=""): 
-                match = False
-            if match: 
+            if relationship.consistency(nd_map[key]['axioms'], rt_lines, new_dir=""): 
                 nd_map[key]['nd'].append(hier['hierarchy_name'])
 
-        print(key, nd_map[key])    
-
-
+    print(nd_map)
     return nd_map
 
 find_nondecomp()
