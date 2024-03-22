@@ -33,7 +33,7 @@ export PATH="<file_location_of_installed_prover>/LADR-2009-11A/bin:$PATH"
 ```
 <br/>
 
-## **hashemi**
+## **search/hashemi**
 Implementation of the Hashemi procedure. Constructs the closest matching theory to 
 models provided by the user (consistent with all examples and inconsistent with all counterexamples)
 using existing axioms from a *chsain decomposition of theories. 
@@ -61,8 +61,8 @@ Important notes:
 
 #### Run hashemi procedure from /seadoo
 ```
-mv ~/seadoo/hashemi/hashemi_config_template.py ~/seadoo/config.py       //Follow instructions for setup in config.py
-python3 -m hashemi.search
+mv ~/seadoo/config_template.py ~/seadoo/config.py       //Follow instructions for setup in config.py
+python3 -m search.hashemi
 ```
 <br/>
 
@@ -83,7 +83,7 @@ There are 6 different outcomes:
 
 #### Run relationship from seadoo/
 ```
-mv ~/seadoo/p9_tools/relationship/relationship_config_template.py ~/seadoo/config.py             //Follow instructions for setup in config.py
+mv ~/seadoo/config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
 python3 -m p9_tools.relationship.relationship
 ```
 <br/>
@@ -97,15 +97,15 @@ There are 3 use cases for this package:
 ### Use Case 1 and 2
 #### Run insertion from seadoo/
 ```
-mv ~/seadoo/p9_tools/insertion/insertion_config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
+mv ~/seadoo/config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
 python3 -m p9_tools.insertion.insertion
 ```
 
 ### Use Case 3
 #### Run construct from seadoo/
 ```
-mv ~/seadoo/p9_tools/insertion/insertion_config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
-touch <name_of_chain_decomp>.csv                                                  //Open this file and add a 0 as the first entry
+mv ~/seadoo/config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
+touch <name_of_chain_decomp>.csv                     //Open this file and add a 0 as the first entry
 python3 -m p9_tools.insertion.construct
 ```
 <br><br/>
