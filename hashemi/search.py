@@ -6,6 +6,7 @@ from p9_tools.parse import theory, model
 import os
 import time
 import re
+import argparse
 import mysql.connector
 from mysql.connector import Error
 
@@ -444,6 +445,9 @@ def find_nondecomp():
     #print(nd_map)
     return nd_map
 
-find_nondecomp()
-#if __name__ == "__main__":
- #   main()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--hashemi", action='store_true')
+    args = parser.parse_args()
+    if args.hashemi: 
+        hashemi(config.hierarchy)
