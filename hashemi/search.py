@@ -66,18 +66,23 @@ def find_weak(hier, chain, model_lines):
 
 # function to identify the definitions required to pull from
 # parsing all the signatures that appear before an opening parentheses
-def extract_signatures(lines):
+def extract_signatures(lines: list) -> dict:
     s = {}
     for axiom in lines:
-        print(axiom)
         i = axiom.find('(')
         j = axiom.find(')')
         if j <= i or i == -1 or j == -1: 
             continue
-        signature = axiom[:i]
+        signature = axiom[:i] if axiom[0] != '-' else axiom[1:i]
         if re.match('^[a-zA-Z0-9_]+$', signature): 
             args = len(axiom[i+1:j].split(","))    # number of arguments
-            s[signature] = args
+            if signature not in s: 
+                s[signature] = {
+                    'args': args,
+                    'axioms': [axiom]
+                }
+            else: 
+                s[signature]['axioms'].append(axiom)
     return s
 
 
@@ -395,41 +400,58 @@ def hashemi(hier: str):
 def find_nondecomp(): 
     #generalize
     nd = get_hierarchies_by_type(1)   # 1 relation for nondecomp 
-    nd_map = {}                       # key is relation, value is consistent nondecomp else None      
+    nd_map = {}                       # key is model signature, value is dict with info 
 
-    signatures = {}
-
+    # get signatures and respective axioms from examples 
     for ex_file in os.listdir(EX_PATH):
         if ex_file.endswith(".in"):
             print("\nexample", ex_file)
             model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
-            signatures = extract_signatures(model_lines)
-            print(signatures)
-
             print(model_lines)
+            temp = extract_signatures(model_lines)
+            for key in temp: 
+                temp[key]['ex_axioms'] = temp[key].pop('axioms')
+            nd_map.update(temp)
 
-
-
-
-    # root theory comparison 
-    for hier in nd:
-        if not hier['root_theory']: 
-            print('root theory for', hier['hierarchy_name'], 'hierarchy not specified in database. skipping...')
-            continue
-        rt_name = hier['root_theory']+'.in'
-        rt_path = os.path.join(os.path.sep, REPO_PATH, hier['hierarchy_name'], rt_name)
-        if not os.path.isfile(rt_path): 
-            print('root theory', rt_name, 'not found in', rt_path, '. skipping...')
-            continue
-
-        #rt_lines = theory.theory_setup(os.path.join(REPO_PATH, hier, rtheory_name))
-        rt_lines = theory.theory_setup(rt_path)
-
-
-
-            #if True:
-             #   consistent = relationship.consistency(model_lines, theory_lines, new_dir="")
+    # get from counterexamples 
+    for cex_file in os.listdir(CEX_PATH):
+        if cex_file.endswith(".in"): 
+            print("\ncounterexample", cex_file)
+            model_lines = model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True)
+            temp = extract_signatures(model_lines)
+            for key in temp: 
+                if key not in nd_map: 
+                    nd_map[key] = temp[key]
+                else: 
+                    nd_map[key]['cex_axioms'] = temp[key]['axioms']
     
+    # compare the axioms for each signature with every root theory 
+    for key in nd_map: 
+        nd_map[key]['nd'] = []
+        for hier in nd:
+            # get root theory
+            if not hier['root_theory']: 
+                print('root theory for', hier['hierarchy_name'], 'hierarchy not specified in database. skipping...')
+                continue
+            rt_name = hier['root_theory'] + '.in'   
+            rt_path = os.path.join(os.path.sep, REPO_PATH, hier['hierarchy_name'], rt_name)
+            if not os.path.isfile(rt_path): 
+                print('root theory', rt_name, 'not found in', rt_path, '. skipping...')
+                continue
+
+            #rt_lines = theory.theory_setup(os.path.join(REPO_PATH, hier, rtheory_name))
+            rt_lines = theory.theory_setup(rt_path)
+
+            match = True
+            if 'ex_axioms' in nd_map[key] and not relationship.consistency(nd_map[key]['ex_axioms'], rt_lines, new_dir=""): 
+                match = False
+            if 'cex_axioms' in nd_map[key] and relationship.consistency(nd_map[key]['cex_axioms'], rt_lines, new_dir=""): 
+                match = False
+            if match: 
+                nd_map[key]['nd'].append(hier['hierarchy_name'])
+
+        print(key, nd_map[key])    
+
 
     return nd_map
 
