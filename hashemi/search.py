@@ -403,13 +403,13 @@ def find_nondecomp():
     # get signatures and respective axioms from examples 
     for ex_file in os.listdir(EX_PATH):
         if ex_file.endswith(".in"):
-            print("\nexample", ex_file)
             model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
             temp = extract_signatures(model_lines)
             nd_map.update(temp)
 
     # compare the axioms for each signature with every root theory 
     for key in nd_map: 
+        print('\nfinding nondecomposable hierarchy match for', key, 'relation signature...')
         nd_map[key]['nd'] = []
         for hier in nd:
             # get root theory
@@ -427,7 +427,7 @@ def find_nondecomp():
             if relationship.consistency(nd_map[key]['axioms'], rt_lines, new_dir=""): 
                 nd_map[key]['nd'].append(hier['hierarchy_name'])
 
-    print(nd_map)
+    # print(nd_map)
     return nd_map
 
 find_nondecomp()
