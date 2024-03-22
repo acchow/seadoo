@@ -1,4 +1,5 @@
 from search.hashemi import *
+import itertools
 
 
 def get_hierarchies_by_type(num_relations): 
@@ -84,7 +85,76 @@ def nondecomp():
     return nd_map
 
 
+def get_trunk_theories(hier: str) -> list: 
+    trunk_theory_list = []
+    trunk_df = pd.read_csv(os.path.join(os.path.sep, REPO_PATH, hier, hier + ".csv"), usecols=[1]).values.tolist()
+    trunk_df = [t for t in trunk_df if list(filter(lambda a: pd.notna(a), t))]
+    trunk_theory_list = list(set(str(s)[2:-2] + ".in" for s in trunk_df))
+    return trunk_theory_list
+
+
+def get_theory_pairs(theories: list) -> list:
+    check = {}
+    if len(theories) >= 2: 
+        pairs = list(itertools.combinations(list(set(theories)),2))
+        for t in theories: 
+            if t not in check: 
+                check[t] = 1
+            else: 
+                check[t] += 1
+        for t in check: 
+            if check[t] >= 1: 
+                pairs.append((t,t))         #for reducible hierarchies composed of 2 of the same nondecomposable 
+        return pairs
+    else: 
+        return theories
+
+
+def check_reducible(): 
+    nd_map = nondecomp()
+    check = {}              #store if found trunk theories for hierarchy already
+    reducible = True
+    weak_reducible_trunk = {}
+
+    theories = [theory for signature in nd_map for theory in nd_map[signature]['nd']]
+    pairs = get_theory_pairs(theories)          
+    candidate_hier = get_hierarchies_by_type(2)
+    print('\n',pairs)
+    print('\n',candidate_hier)
+
+    for signature in nd_map: 
+        for hier in nd_map[signature]['nd']: 
+            if hier not in check:
+                theories = get_trunk_theories(hier)
+                check[hier] = []
+                for t in theories: 
+                    lines = theory.theory_setup(os.path.join(REPO_PATH, hier, t))
+                    if lines: 
+                        check[hier].append({
+                            'theory_name': t,
+                            'lines' : lines
+                        })
+
+
+            for t in check[hier]: 
+                for ex_file in os.listdir(EX_PATH):
+                    if ex_file.endswith(".in"):
+                        model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
+                        print(hier, t['theory_name'], t['lines'])
+                        if relationship.consistency(model_lines, t['lines'],new_dir=""):
+                            reducible = False
+                            if hier not in weak_reducible_trunk: 
+                                weak_reducible_trunk[hier] = []
+                            weak_reducible_trunk[hier].append(t)
+        
+            # check if all examples falsify all trunk theories, if yes, then it is reducible, if not, then it needs residue axioms 
+
+    return reducible, weak_reducible_trunk
+
+
+
+
 if __name__ == "__main__": 
-    nondecomp()
+    print(check_reducible())
 
 
