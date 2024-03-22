@@ -5,6 +5,7 @@ from p9_tools.relationship import relationship, files
 from p9_tools.parse import theory, model
 import os
 import time
+import re
 import mysql.connector
 from mysql.connector import Error
 
@@ -66,19 +67,17 @@ def find_weak(hier, chain, model_lines):
 # function to identify the definitions required to pull from
 # parsing all the signatures that appear before an opening parentheses
 def extract_signatures(lines):
-    s = set()
-
+    s = {}
     for axiom in lines:
-        for i, char in enumerate(axiom):
-            if char == "(" and axiom[i-1].isalpha():
-                j = i-1
-                signature = ""
-                # accounts for signatures containing letters, numbers and underscores
-                while (axiom[j].isalpha() or axiom[j].isnumeric() or axiom[j] == "_") and j >= 0:
-                    signature = axiom[j] + signature    # appending letter to the front of string
-                    j -= 1
-                if signature:
-                    s.add(signature)
+        print(axiom)
+        i = axiom.find('(')
+        j = axiom.find(')')
+        if j <= i or i == -1 or j == -1: 
+            continue
+        signature = axiom[:i]
+        if re.match('^[a-zA-Z0-9_]+$', signature): 
+            args = len(axiom[i+1:j].split(","))    # number of arguments
+            s[signature] = args
     return s
 
 
@@ -209,9 +208,7 @@ def get_input_chains(hier):
     return input_chains
 
 
-def get_hierarchies(): 
-    nondecomp = []
-    #find all nondecomposable theories
+def get_hierarchies_by_type(num_relations): 
     conn = None
     try: 
         conn = mysql.connector.connect(
@@ -224,174 +221,218 @@ def get_hierarchies():
     except Error as e: 
         print('Error connecting to database', config.db['schema'], e)
         return False
-
+    
     cursor = conn.cursor()
-    q = "SELECT hierarchy_name FROM hierarchies WHERE num_prim_relations = 1"
+    cols = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' AND TABLE_NAME = '{}'".format(config.db['schema'], 'hierarchies')
+    cursor.execute(cols)
+    cols = [row for row in cursor]
+    
+    q = "SELECT * FROM hierarchies WHERE num_prim_relations = {}".format(num_relations)
     cursor.execute(q)
-    nondecomp = [name[0] for name in cursor]
-    return nondecomp
+    hierarchies = [row for row in cursor]
+
+    info = []
+    for row in hierarchies: 
+        temp = {}
+        for i in range(len(row)): 
+            temp[cols[i][0]] = row[i]
+        info.append(temp)
+    # print(info)
+    return info
 
 
 # finding all the brackets
-def main():
-    answer_reports = []
-    #generalize
-    temp = get_hierarchies()
-    nondecomp = []
-    for hier in temp: 
-        if os.path.isfile(os.path.join(os.path.sep, REPO_PATH, hier, hier+".csv")): 
-            nondecomp.append(hier)
-        else: 
-            print("chain decomposition csv for hierarchy", hier, "not found")
+def hashemi(hier: str):
+    print("\nRUNNING HASHEMI PROCEDURE FOR", hier, "HIERARCHY")
+    # chain decomposition in list form
+    input_chains = get_input_chains(hier)
+    # get the bracket from each chain
+    all_brackets = []
+    print("\nDISCOVERY PHASE")
+    for i, chain in enumerate(input_chains):
+        bracket = [i] + find_bracket(hier, chain)
+        all_brackets.append(bracket)
 
-    for hier in nondecomp:
-        print("\nRUNNING HASHEMI PROCEDURE FOR", hier, "HIERARCHY")
-        # chain decomposition in list form
-        input_chains = get_input_chains(hier)
-        # get the bracket from each chain
-        all_brackets = []
-        print("\nDISCOVERY PHASE")
-        for i, chain in enumerate(input_chains):
-            bracket = [i] + find_bracket(hier, chain)
-            all_brackets.append(bracket)
+    # singular best matches
+    best_match_axioms = set()
 
-        # singular best matches
-        best_match_axioms = set()
+    # bracket union
+    lb_axioms = set()
+    ub_axioms = set()
 
-        # bracket union
-        lb_axioms = set()
-        ub_axioms = set()
+    # answer report
+    answer_report = ["seadoo hashemi answer report\n\n"]
 
-        # answer report
-        answer_report = ["seadoo hashemi answer report\n\n"]
+    try:
+        new_dir = os.path.join(SEARCH_PATH, "models_to_classify")
+        os.mkdir(new_dir)
+    except FileExistsError:
+        new_dir = os.path.join(SEARCH_PATH, "models_to_classify")
+        
+    print("\n\nDIALOGUE PHASE\n")
 
-        try:
-            new_dir = os.path.join(SEARCH_PATH, "models_to_classify")
-            os.mkdir(new_dir)
-        except FileExistsError:
-            new_dir = os.path.join(SEARCH_PATH, "models_to_classify")
-            
-        print("\n\nDIALOGUE PHASE\n")
+    for i, bracket in enumerate(all_brackets):
+        print('checking if bracket',i,'can be refined...')
+        if bracket[1] is None or bracket[2] is None:
+            print("no bracket found for chain", bracket[0])
+            best_match = "no bracket found"
+        elif bracket[1] == bracket[2]: 
+            best_match = input_chains[bracket[0]][bracket[1]]
+            for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, best_match)):
+                best_match_axioms.add(axiom)
+            print("best matching theory from chain", bracket[0] + 1, "is", best_match, "\n")
+        else:
+            # dialogue phase
+            # refine upper bound
+            ub_min = False
+            print(input_chains)
+            print(bracket)
+            lb_theory = input_chains[bracket[0]][bracket[1]]
+            while ub_min is False and bracket[2] > 0:
+                ub_theory = input_chains[bracket[0]][bracket[2]]
+                ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory
+                # look for a model
+                print(os.path.join(REPO_PATH, hier, lb_theory), os.path.join(REPO_PATH, hier, ub_theory), os.path.join(REPO_PATH, hier, new_dir))
+                if generate_model(setup_bracket_model(os.path.join(REPO_PATH, hier, lb_theory),
+                                                        os.path.join(REPO_PATH, hier, ub_theory)),
+                                                        os.path.join(REPO_PATH, hier, new_dir),
+                                                        ub_model):
+                    ans = input("is " + os.path.join(new_dir, ub_model) + " an example? (y/n):")
+                    # omits a model
+                    if ans == 'y':
+                        bracket[2] -= 1
+                    else:
+                        ub_min = True
+                else:
+                    print("model cannot be generated for ", ub_model)
+                    ub_min = True
 
-        for i, bracket in enumerate(all_brackets):
-            print('checking if bracket',i,'can be refined...')
-            if bracket[1] is None or bracket[2] is None:
-                print("no bracket found for chain", bracket[0])
-                best_match = "no bracket found"
-            elif bracket[1] == bracket[2]: 
+            # refine lower bound
+            lb_max = False
+            # while lb_max is False and bracket[1] < bracket[2]:
+            while lb_max is False and bracket[1] < len(input_chains[bracket[0]])-1:
+                lb_theory = input_chains[bracket[0]][bracket[1]]
+                lb_theory_next = input_chains[bracket[0]][bracket[1] + 1]   # subsequent theory in the chain
+                lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + lb_theory_next
+                # look for a model
+                if generate_model(setup_bracket_model(os.path.join(REPO_PATH, hier, lb_theory),
+                                                        os.path.join(REPO_PATH, hier, lb_theory_next)),
+                                                        os.path.join(REPO_PATH, hier, new_dir),
+                                                        lb_model):
+                    ans = input("is " + os.path.join(new_dir, lb_model) + " an example? (y/n):")
+                    # contains an unintended model
+                    if ans == 'n':
+                        bracket[1] += 1  # move lower bound up
+                    else:
+                        lb_max = True
+                else:
+                    print("model cannot be generated for ", lb_model, "\n")
+                    lb_max = True
+
+            if bracket[1] == bracket[2]:
                 best_match = input_chains[bracket[0]][bracket[1]]
                 for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, best_match)):
                     best_match_axioms.add(axiom)
                 print("best matching theory from chain", bracket[0] + 1, "is", best_match, "\n")
+            elif bracket[1] > bracket[2]:
+                best_match = "no bracket found"
+                print("overlapped bracket, theory does not exist in chain", bracket[0] + 1, "\n")
             else:
-                # dialogue phase
-                # refine upper bound
-                ub_min = False
-                print(input_chains)
-                print(bracket)
-                lb_theory = input_chains[bracket[0]][bracket[1]]
-                while ub_min is False and bracket[2] > 0:
-                    ub_theory = input_chains[bracket[0]][bracket[2]]
-                    ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory
-                    # look for a model
-                    print(os.path.join(REPO_PATH, hier, lb_theory), os.path.join(REPO_PATH, hier, ub_theory), os.path.join(REPO_PATH, hier, new_dir))
-                    if generate_model(setup_bracket_model(os.path.join(REPO_PATH, hier, lb_theory),
-                                                          os.path.join(REPO_PATH, hier, ub_theory)),
-                                                          os.path.join(REPO_PATH, hier, new_dir),
-                                                          ub_model):
-                        ans = input("is " + os.path.join(new_dir, ub_model) + " an example? (y/n):")
-                        # omits a model
-                        if ans == 'y':
-                            bracket[2] -= 1
-                        else:
-                            ub_min = True
-                    else:
-                        print("model cannot be generated for ", ub_model)
-                        ub_min = True
+                best_match = [input_chains[bracket[0]][bracket[1]], input_chains[bracket[0]][bracket[2]]]
+                for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, input_chains[bracket[0]][bracket[1]])):
+                    lb_axioms.add(axiom)
+                for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, input_chains[bracket[0]][bracket[2]])):
+                    ub_axioms.add(axiom)
+                print("bracket from chain", bracket[0] + 1, best_match, "cannot be further refined\n")
+        answer_report.append("chain " + str(bracket[0] + 1) + ": " + str(best_match) + "\n")
 
-                # refine lower bound
-                lb_max = False
-                # while lb_max is False and bracket[1] < bracket[2]:
-                while lb_max is False and bracket[1] < len(input_chains[bracket[0]])-1:
-                    lb_theory = input_chains[bracket[0]][bracket[1]]
-                    lb_theory_next = input_chains[bracket[0]][bracket[1] + 1]   # subsequent theory in the chain
-                    lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + lb_theory_next
-                    # look for a model
-                    if generate_model(setup_bracket_model(os.path.join(REPO_PATH, hier, lb_theory),
-                                                          os.path.join(REPO_PATH, hier, lb_theory_next)),
-                                                          os.path.join(REPO_PATH, hier, new_dir),
-                                                          lb_model):
-                        ans = input("is " + os.path.join(new_dir, lb_model) + " an example? (y/n):")
-                        # contains an unintended model
-                        if ans == 'n':
-                            bracket[1] += 1  # move lower bound up
-                        else:
-                            lb_max = True
-                    else:
-                        print("model cannot be generated for ", lb_model, "\n")
-                        lb_max = True
+    # final answer
+    # best match axioms
+    if best_match_axioms:
+        answer_report.append("\n\nbest matching theory found:\n")
+        print("best matching theory: ")
+        for axiom in best_match_axioms:
+            answer_report.append(axiom + ".")
+            print(axiom)
 
-                if bracket[1] == bracket[2]:
-                    best_match = input_chains[bracket[0]][bracket[1]]
-                    for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, best_match)):
-                        best_match_axioms.add(axiom)
-                    print("best matching theory from chain", bracket[0] + 1, "is", best_match, "\n")
-                elif bracket[1] > bracket[2]:
-                    best_match = "no bracket found"
-                    print("overlapped bracket, theory does not exist in chain", bracket[0] + 1, "\n")
-                else:
-                    best_match = [input_chains[bracket[0]][bracket[1]], input_chains[bracket[0]][bracket[2]]]
-                    for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, input_chains[bracket[0]][bracket[1]])):
-                        lb_axioms.add(axiom)
-                    for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, input_chains[bracket[0]][bracket[2]])):
-                        ub_axioms.add(axiom)
-                    print("bracket from chain", bracket[0] + 1, best_match, "cannot be further refined\n")
-            answer_report.append("chain " + str(bracket[0] + 1) + ": " + str(best_match) + "\n")
+    # union of brackets
+    elif lb_axioms and ub_axioms:
+        answer_report.append("\n\nbest matching bracket found:\n")
+        print("best matching bracket")
 
-        # final answer
-        # best match axioms
-        if best_match_axioms:
-            answer_report.append("\n\nbest matching theory found:\n")
-            print("best matching theory: ")
-            for axiom in best_match_axioms:
-                answer_report.append(axiom + ".")
-                print(axiom)
+        answer_report.append("\nlower bound:")
+        print("lower bound: ")
+        for axiom in lb_axioms:
+            answer_report.append(axiom + ".\n")
+            print(axiom)
 
-        # union of brackets
-        elif lb_axioms and ub_axioms:
-            answer_report.append("\n\nbest matching bracket found:\n")
-            print("best matching bracket")
+        answer_report.append("\n\nupper bound:")
+        print("upper bound: ")
+        for axiom in ub_axioms:
+            answer_report.append(axiom + ".\n")
+            print(axiom)
 
-            answer_report.append("\nlower bound:")
-            print("lower bound: ")
-            for axiom in lb_axioms:
-                answer_report.append(axiom + ".\n")
-                print(axiom)
+    # no matches
+    else:
+        answer_report.append("\n\nno best match exists")
+        print("no best match exists")
 
-            answer_report.append("\n\nupper bound:")
-            print("upper bound: ")
-            for axiom in ub_axioms:
-                answer_report.append(axiom + ".\n")
-                print(axiom)
-
-        # no matches
-        else:
-            answer_report.append("\n\nno best match exists")
-            print("no best match exists")
-
-        time_obj = time.localtime(time.time())
-        answer_report_file_name = "hashemi_report_" + hier + "%d%d%d-%d%d%d" \
-                                % \
-                                (time_obj.tm_mday, time_obj.tm_mon, time_obj.tm_year,
-                                time_obj.tm_hour, time_obj.tm_min, time_obj.tm_sec) \
-                                + ".txt"
-        with open(os.path.join(os.path.sep, ANSWER_REPORT, answer_report_file_name), "w") as f:
-            for line in answer_report:
-                f.write(line)
-            print('\nanswer report', answer_report_file_name, 'created.\n')
-        answer_reports.append(answer_report)
-    return answer_reports
+    time_obj = time.localtime(time.time())
+    answer_report_file_name = "hashemi_report_" + hier + "%d%d%d-%d%d%d" \
+                            % \
+                            (time_obj.tm_mday, time_obj.tm_mon, time_obj.tm_year,
+                            time_obj.tm_hour, time_obj.tm_min, time_obj.tm_sec) \
+                            + ".txt"
+    with open(os.path.join(os.path.sep, ANSWER_REPORT, answer_report_file_name), "w") as f:
+        for line in answer_report:
+            f.write(line)
+        print('\nanswer report', answer_report_file_name, 'created.\n')
+    return answer_report
 
 
-if __name__ == "__main__":
-    main()
+
+
+def find_nondecomp(): 
+    #generalize
+    nd = get_hierarchies_by_type(1)   # 1 relation for nondecomp 
+    nd_map = {}                       # key is relation, value is consistent nondecomp else None      
+
+    signatures = {}
+
+    for ex_file in os.listdir(EX_PATH):
+        if ex_file.endswith(".in"):
+            print("\nexample", ex_file)
+            model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
+            signatures = extract_signatures(model_lines)
+            print(signatures)
+
+            print(model_lines)
+
+
+
+
+    # root theory comparison 
+    for hier in nd:
+        if not hier['root_theory']: 
+            print('root theory for', hier['hierarchy_name'], 'hierarchy not specified in database. skipping...')
+            continue
+        rt_name = hier['root_theory']+'.in'
+        rt_path = os.path.join(os.path.sep, REPO_PATH, hier['hierarchy_name'], rt_name)
+        if not os.path.isfile(rt_path): 
+            print('root theory', rt_name, 'not found in', rt_path, '. skipping...')
+            continue
+
+        #rt_lines = theory.theory_setup(os.path.join(REPO_PATH, hier, rtheory_name))
+        rt_lines = theory.theory_setup(rt_path)
+
+
+
+            #if True:
+             #   consistent = relationship.consistency(model_lines, theory_lines, new_dir="")
+    
+
+    return nd_map
+
+find_nondecomp()
+#if __name__ == "__main__":
+ #   main()
