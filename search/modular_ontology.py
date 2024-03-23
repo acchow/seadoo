@@ -93,6 +93,9 @@ def get_trunk_theories(hier: str) -> list:
     except FileNotFoundError: 
         print(path, 'chain decomposition not found. unable to search.')
         return False
+    except pd.errors.EmptyDataError: 
+        print(path, 'chain decomposition is empty. unable to search.')
+        return False
     trunk_df = [t for t in trunk_df if list(filter(lambda a: pd.notna(a), t))]
     trunk_theory_list = list(set(str(s)[2:-2] + ".in" for s in trunk_df))
     return trunk_theory_list
@@ -128,30 +131,32 @@ def check_reducible():
     print('\n',candidate_hier)
 
     for hier in candidate_hier: 
-        if hier['hierarchy_name'] not in check:
-            theories = get_trunk_theories(hier['hierarchy_name'])
+        name = hier['hierarchy_name']
+        if name not in check:
+            theories = get_trunk_theories(name)
             if not theories: 
+                print('skipping...')
                 continue
-            check['hierarchy_name'] = []
+            check[name] = []
             for t in theories: 
-                lines = theory.theory_setup(os.path.join(REPO_PATH, hier['hierarchy_name'], t))
+                lines = theory.theory_setup(os.path.join(REPO_PATH, name, t))
                 if lines: 
-                    check['hierarchy_name'].append({
+                    check[name].append({
                         'theory_name': t,
                         'lines' : lines
                     })
 
         # check if all examples falsify all trunk theories, if yes, then it is reducible, if not, then it needs residue axioms 
-        for t in check[hier]: 
+        for t in check[name]: 
             for ex_file in os.listdir(EX_PATH):
                 if ex_file.endswith(".in"):
                     model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
                     print(hier, t['theory_name'], t['lines'])
                     if relationship.consistency(model_lines, t['lines'],new_dir=""):
                         reducible = False
-                        if hier not in weak_reducible_trunk: 
-                            weak_reducible_trunk[hier] = set()
-                        weak_reducible_trunk[hier].add(t['theory_name'])
+                        if name not in weak_reducible_trunk: 
+                            weak_reducible_trunk[name] = set()
+                        weak_reducible_trunk[name].add(t['theory_name'])
         
     print(weak_reducible_trunk)
     return reducible, weak_reducible_trunk
