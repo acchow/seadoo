@@ -118,8 +118,7 @@ def get_theory_pairs(theories: list) -> list:
         return theories
 
 
-def check_reducible(): 
-    nd_map = nondecomp()
+def check_reducible(nd_map: dict): 
     check = {}              #store if found trunk theories for hierarchy already
     reducible = True
     weak_reducible_trunk = {}
@@ -151,20 +150,27 @@ def check_reducible():
             for ex_file in os.listdir(EX_PATH):
                 if ex_file.endswith(".in"):
                     model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
-                    print(hier, t['theory_name'], t['lines'])
                     if relationship.consistency(model_lines, t['lines'],new_dir=""):
                         reducible = False
                         if name not in weak_reducible_trunk: 
                             weak_reducible_trunk[name] = set()
                         weak_reducible_trunk[name].add(t['theory_name'])
         
-    print(weak_reducible_trunk)
     return reducible, weak_reducible_trunk
 
 
-
-
 if __name__ == "__main__": 
-    check_reducible()
-
-
+    nd_map = nondecomp()
+    reducible, trunk = check_reducible(nd_map)
+    if not reducible: 
+        for hier in trunk: 
+            hashemi(hier)
+    else: 
+        hierarchies = set()
+        results = []
+        for signature in nd_map: 
+            for hier in nd_map[signature]['nd']: 
+                hierarchies.add(hier)
+        for hier in list(hierarchies): 
+            results.append(hashemi(hier))
+            
