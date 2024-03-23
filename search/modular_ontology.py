@@ -87,7 +87,12 @@ def nondecomp():
 
 def get_trunk_theories(hier: str) -> list: 
     trunk_theory_list = []
-    trunk_df = pd.read_csv(os.path.join(os.path.sep, REPO_PATH, hier, hier + ".csv"), usecols=[1]).values.tolist()
+    path = os.path.join(os.path.sep, REPO_PATH, hier, hier + ".csv")
+    try:
+        trunk_df = pd.read_csv(path, usecols=[1]).values.tolist()
+    except FileNotFoundError: 
+        print(path, 'chain decomposition not found. unable to search.')
+        return False
     trunk_df = [t for t in trunk_df if list(filter(lambda a: pd.notna(a), t))]
     trunk_theory_list = list(set(str(s)[2:-2] + ".in" for s in trunk_df))
     return trunk_theory_list
@@ -122,39 +127,39 @@ def check_reducible():
     print('\n',pairs)
     print('\n',candidate_hier)
 
-    for signature in nd_map: 
-        for hier in nd_map[signature]['nd']: 
-            if hier not in check:
-                theories = get_trunk_theories(hier)
-                check[hier] = []
-                for t in theories: 
-                    lines = theory.theory_setup(os.path.join(REPO_PATH, hier, t))
-                    if lines: 
-                        check[hier].append({
-                            'theory_name': t,
-                            'lines' : lines
-                        })
+    for hier in candidate_hier: 
+        if hier['hierarchy_name'] not in check:
+            theories = get_trunk_theories(hier['hierarchy_name'])
+            if not theories: 
+                continue
+            check['hierarchy_name'] = []
+            for t in theories: 
+                lines = theory.theory_setup(os.path.join(REPO_PATH, hier['hierarchy_name'], t))
+                if lines: 
+                    check['hierarchy_name'].append({
+                        'theory_name': t,
+                        'lines' : lines
+                    })
 
-
-            for t in check[hier]: 
-                for ex_file in os.listdir(EX_PATH):
-                    if ex_file.endswith(".in"):
-                        model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
-                        print(hier, t['theory_name'], t['lines'])
-                        if relationship.consistency(model_lines, t['lines'],new_dir=""):
-                            reducible = False
-                            if hier not in weak_reducible_trunk: 
-                                weak_reducible_trunk[hier] = []
-                            weak_reducible_trunk[hier].append(t)
+        # check if all examples falsify all trunk theories, if yes, then it is reducible, if not, then it needs residue axioms 
+        for t in check[hier]: 
+            for ex_file in os.listdir(EX_PATH):
+                if ex_file.endswith(".in"):
+                    model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
+                    print(hier, t['theory_name'], t['lines'])
+                    if relationship.consistency(model_lines, t['lines'],new_dir=""):
+                        reducible = False
+                        if hier not in weak_reducible_trunk: 
+                            weak_reducible_trunk[hier] = set()
+                        weak_reducible_trunk[hier].add(t['theory_name'])
         
-            # check if all examples falsify all trunk theories, if yes, then it is reducible, if not, then it needs residue axioms 
-
+    print(weak_reducible_trunk)
     return reducible, weak_reducible_trunk
 
 
 
 
 if __name__ == "__main__": 
-    print(check_reducible())
+    check_reducible()
 
 
