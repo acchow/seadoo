@@ -257,14 +257,11 @@ def hashemi(hier: str):
             # dialogue phase
             # refine upper bound
             ub_min = False
-            print(input_chains)
-            print(bracket)
             lb_theory = input_chains[bracket[0]][bracket[1]]
             while ub_min is False and bracket[2] > 0:
                 ub_theory = input_chains[bracket[0]][bracket[2]]
                 ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory
                 # look for a model
-                print(os.path.join(REPO_PATH, hier, lb_theory), os.path.join(REPO_PATH, hier, ub_theory), os.path.join(REPO_PATH, hier, new_dir))
                 if generate_model(setup_bracket_model(os.path.join(REPO_PATH, hier, lb_theory),
                                                         os.path.join(REPO_PATH, hier, ub_theory)),
                                                         os.path.join(REPO_PATH, hier, new_dir),

@@ -45,12 +45,7 @@ def nondecomp():
         if ex_file.endswith(".in"):
             model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
             temp = extract_signatures(model_lines)
-            for s in temp: 
-                if s not in nd_map: 
-                    nd_map.update(temp)
-                    nd_map[s]['axioms'] = [temp[s]['axioms']]
-                else: 
-                    nd_map[s]['axioms'].append(temp[s]['axioms'])
+            nd_map.update(temp)
 
     # compare the axioms for each signature with every root theory 
     for key in nd_map: 
@@ -70,9 +65,8 @@ def nondecomp():
             # consistency check with examples 
             rt_lines = theory.theory_setup(rt_path)
             consistent = True
-            for ex in nd_map[key]['axioms']: 
-                if not relationship.consistency(ex, rt_lines, new_dir=""): 
-                    consistent = False
+            if not relationship.consistency(nd_map[key]['axioms'], rt_lines, new_dir=""): 
+                consistent = False
             if consistent: 
                 nd_map[key]['nd'].append(hier['hierarchy_name'])
         
