@@ -17,8 +17,8 @@ def get_hierarchies_by_type(num_relations):
         return False
     
     cursor = conn.cursor()
-    cols = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' AND TABLE_NAME = '{}'".format(config.db['schema'], 'hierarchies')
-    cursor.execute(cols)
+    query_cols = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' AND TABLE_NAME = '{}'".format(config.db['schema'], 'hierarchies')
+    cursor.execute(query_cols)
     cols = [row for row in cursor]
     
     q = "SELECT * FROM hierarchies WHERE num_prim_relations = {}".format(num_relations)
@@ -74,8 +74,6 @@ def nondecomp():
             print('inconsistent with all nd hierarchies')
         else: 
             print(key,'is consistent with', nd_map[key]['nd'])
-
-    print(nd_map)
     return nd_map
 
 
@@ -119,9 +117,11 @@ def check_reducible(nd_map: dict):
 
     theories = [theory for signature in nd_map for theory in nd_map[signature]['nd']]
     pairs = get_theory_pairs(theories)          
-    candidate_hier = get_hierarchies_by_type(2)
-    print('\n',pairs)
-    print('\n',candidate_hier)
+    temp = get_hierarchies_by_type(2)
+    candidate_hier = []
+    for hier in temp: 
+        if hier['nondecomp_hierarchies'] and tuple(hier['nondecomp_hierarchies'].split(',')) in pairs: 
+            candidate_hier.append(hier)
 
     for hier in candidate_hier: 
         name = hier['hierarchy_name']
@@ -149,22 +149,23 @@ def check_reducible(nd_map: dict):
                         if name not in weak_reducible_trunk: 
                             weak_reducible_trunk[name] = set()
                         weak_reducible_trunk[name].add(t['theory_name'])
-        
+    print(reducible, weak_reducible_trunk)
     return reducible, weak_reducible_trunk
 
 
 if __name__ == "__main__": 
     nd_map = nondecomp()
-    reducible, trunk = check_reducible(nd_map)
-    if not reducible: 
-        for hier in trunk: 
-            hashemi(hier)
-    else: 
-        hierarchies = set()
-        results = []
-        for signature in nd_map: 
-            for hier in nd_map[signature]['nd']: 
-                hierarchies.add(hier)
-        for hier in list(hierarchies): 
-            results.append(hashemi(hier))
+    if nd_map: 
+        reducible, trunk = check_reducible(nd_map)
+        if not reducible:       #run hashemi on weakly reducible hierarchies
+            for hier in trunk: 
+                hashemi(hier)
+        else: 
+            hierarchies = set()
+            results = []
+            for signature in nd_map: 
+                for hier in nd_map[signature]['nd']: 
+                    hierarchies.add(hier)
+            for hier in list(hierarchies): 
+                results.append(hashemi(hier))
             

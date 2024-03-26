@@ -66,12 +66,25 @@ python3 -m search.hashemi
 ```
 <br/>
 
+## **search/modular_ontology**
+Extension of the Hashemi procedure to generate modular ontologies. Checks for consistent nondecomposable theories by root theory comparison and whether residue axioms from weakly reducible hierarchies are required to generate an ontology bottom-up. The same setup files as `search.hashemi` are required. 
+
+An SQL database should be set up as well, with credentials specified in the config file. The queries to create the schema and insert values are under `db/`. Additional entries may be required for future development, as it currently only contains information about hierarchies used in preliminary testing data, which are: the `orderings`, `graphs`, `subposet`, `subgraph`, and `mereograph` hierarchies. The `nondecomp_hierarchies` column entries must be listed in alphabetical order. 
+
+#### Run modular ontology generation procedure from /seadoo
+```
+mv ~/seadoo/config_template.py ~/seadoo/config.py       //Follow instructions for setup in config.py
+python3 -m db.create_schema
+python3 -m search.modular_ontology.py
+```
+</br>
+
 ## **p9_tools**
 Additional packages used for [hashemi](#hashemi). Can also be used independently as tools
 for theories in Prover9 syntax. The [parse](https://github.com/acchow/seadoo/tree/master/p9_tools/parse) 
 module is required for all other functionality. 
 
-## **relationship**
+## **p9_tools/relationship**
 Checks for consistency and finds the relationship between two theories. 
 There are 6 different outcomes:
 1. equivalent
@@ -88,7 +101,7 @@ python3 -m p9_tools.relationship.relationship
 ```
 <br/>
 
-## **insertion**
+## **p9_tools/insertion**
 There are 3 use cases for this package: 
 1. Insert a theory into an existing chain decomposition (.csv file)
 2. Search for an equivalent theory in an existing chain decomposition (.csv file)
