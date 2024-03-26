@@ -85,7 +85,8 @@ for theories in Prover9 syntax. The [parse](https://github.com/acchow/seadoo/tre
 module is required for all other functionality. 
 
 ## **p9_tools/relationship**
-Checks for consistency and finds the relationship between two theories. 
+Checks for consistency and finds the relationship between two theories. Prover9 is set to terminate after 30 seconds by default if a proof cannot be found.  Mace4 is set to terminate after searching for 10 models, or 30 seconds (whichever comes sooner). 
+
 There are 6 different outcomes:
 1. equivalent
 2. one theory entails the other 

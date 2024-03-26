@@ -35,7 +35,7 @@ def get_hierarchies_by_type(num_relations):
     return info
 
 
-def nondecomp(): 
+def nondecomp() -> dict: 
     #generalize
     nd = get_hierarchies_by_type(1)   # 1 relation for nondecomp 
     nd_map = {}                       # key is model signature, value is dict with info 
@@ -149,23 +149,31 @@ def check_reducible(nd_map: dict):
                         if name not in weak_reducible_trunk: 
                             weak_reducible_trunk[name] = set()
                         weak_reducible_trunk[name].add(t['theory_name'])
-    print(reducible, weak_reducible_trunk)
     return reducible, weak_reducible_trunk
 
 
 if __name__ == "__main__": 
     nd_map = nondecomp()
+    results = []
     if nd_map: 
         reducible, trunk = check_reducible(nd_map)
-        if not reducible:       #run hashemi on weakly reducible hierarchies
+        if not reducible:               #run hashemi on weakly reducible hierarchies
+            print('non-reducible combinations, search for residue axioms...')
             for hier in trunk: 
-                hashemi(hier)
+                results.extend(hashemi(hier,report=False))
+            generate_answer_report('weak_reducible_module', ', '.join(trunk.keys()), results)
         else: 
+            print('reducible. combining axioms...')
             hierarchies = set()
-            results = []
+
             for signature in nd_map: 
                 for hier in nd_map[signature]['nd']: 
                     hierarchies.add(hier)
-            for hier in list(hierarchies): 
-                results.append(hashemi(hier))
+
+            hierarchies = list(hierarchies)
+            for hier in hierarchies: 
+                results.extend(hashemi(hier,', '.join(hierarchies),report=False))
+            generate_answer_report('reducible_module',results)
+    else: 
+        generate_answer_report('no_match','', ['inconsistent with all nondecomposable hierarchies'])
             
