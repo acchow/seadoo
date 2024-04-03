@@ -43,9 +43,15 @@ def nondecomp() -> dict:
     # get signatures and respective axioms from examples 
     for ex_file in os.listdir(EX_PATH):
         if ex_file.endswith(".in"):
-            model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
-            temp = extract_signatures(model_lines)
+            model_lines, constants = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=False)
+            temp = model.extract_signatures(model_lines)
             nd_map.update(temp)
+
+    # close model afterward for separate signatures
+    for key in nd_map: 
+        constants = model.extract_constants(nd_map[key]['asser'])
+        closed_lines = model.closed_model(nd_map[key]['asser'], constants, key, nd_map[key]['args'])
+        nd_map[key]['asser'] += closed_lines
 
     # compare the axioms for each signature with every root theory 
     for key in nd_map: 
@@ -62,14 +68,21 @@ def nondecomp() -> dict:
                 print('root theory', rt_name, 'not found in', rt_path, '. skipping...')
                 continue
             
+            # add a mapping axiom 
+            rel = hier['relation_name']
+            if rel: 
+                map_axiom = '(all x all y ((' + key + '(x,y) <-> ' + rel + '(x,y))))'
+                nd_map[key]['asser'].append(map_axiom)
+
             # consistency check with examples 
             rt_lines = theory.theory_setup(rt_path)
-            consistent = True
-            if not relationship.consistency(nd_map[key]['axioms'], rt_lines, new_dir=""): 
-                consistent = False
-            if consistent: 
+            consistent = relationship.consistency(nd_map[key]['asser'], rt_lines, new_dir="")
+            if consistent is True: 
                 nd_map[key]['nd'].append(hier['hierarchy_name'])
-        
+
+            # remove mapping axiom for this hierarchy 
+            nd_map[key]['asser'].remove(map_axiom)
+
         if not nd_map[key]['nd']: 
             print('inconsistent with all nd hierarchies')
         else: 
@@ -143,8 +156,8 @@ def check_reducible(nd_map: dict):
         for t in check[name]: 
             for ex_file in os.listdir(EX_PATH):
                 if ex_file.endswith(".in"):
-                    model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
-                    if relationship.consistency(model_lines, t['lines'],new_dir=""):
+                    model_lines, _ = model.model_setup(os.path.join(EX_PATH, ex_file))
+                    if relationship.consistency(model_lines, t['lines'],new_dir="") is True:
                         reducible = False
                         if name not in weak_reducible_trunk: 
                             weak_reducible_trunk[name] = set()
@@ -158,7 +171,7 @@ if __name__ == "__main__":
     if nd_map: 
         reducible, trunk = check_reducible(nd_map)
         if not reducible:               #run hashemi on weakly reducible hierarchies
-            print('non-reducible combinations, search for residue axioms...')
+            print('weakly reducible combinations, searching for residue axioms...')
             for hier in trunk: 
                 results.extend(hashemi(hier,report=False))
             generate_answer_report('weak_reducible_module', ', '.join(trunk.keys()), results)
@@ -172,8 +185,8 @@ if __name__ == "__main__":
 
             hierarchies = list(hierarchies)
             for hier in hierarchies: 
-                results.extend(hashemi(hier,', '.join(hierarchies),report=False))
-            generate_answer_report('reducible_module',results)
+                results.extend(hashemi(hier,report=False))
+            generate_answer_report('reducible_module', ', '.join(hierarchies), results)
     else: 
         generate_answer_report('no_match','', ['inconsistent with all nondecomposable hierarchies'])
             
