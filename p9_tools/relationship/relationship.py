@@ -44,7 +44,8 @@ def consistency(lines_t1, lines_t2, new_dir):
             if new_dir:
                 files.create_file(new_dir, "consistent_model", consistent_model)
 
-    except Exception:
+    except Exception as e:
+        print(e)
         consistent = "inconclusive"  # inconclusive results so far, no model found
 
     # no model exists, or Mace reached max number of models
@@ -64,7 +65,8 @@ def consistency(lines_t1, lines_t2, new_dir):
                     files.create_file(new_dir, "inconsistent_proof", inconsistent_proof)
             else:
                 consistent = "inconclusive"
-        except Exception:  # proof timeout, reached max time limit
+        except Exception as e:  # proof timeout, reached max time limit
+            print(e)
             consistent = "inconclusive"  # no model and no proof, inconclusive relationship
 
     return consistent
@@ -103,7 +105,8 @@ def entailment(lines_t1, lines_t2, new_dir):
             if proven & (entail == 0):
                 get_proof = prover.proof()
                 saved_proofs.append(get_proof)
-        except Exception:  # proof timeout, reached max time limit
+        except Exception as e:  # proof timeout, reached max time limit
+            print(e)
             proof_timeout = True
 
         if proven is False:
@@ -130,7 +133,8 @@ def entailment(lines_t1, lines_t2, new_dir):
                         files.create_file(new_dir, "counterexample_found", counterexample_model)
                     counter_file_created = True
 
-            except Exception:
+            except Exception as e:
+                print(e)
                 counterexample = False
 
             # new_axioms.append(mb.goal())
