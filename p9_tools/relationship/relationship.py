@@ -1,4 +1,5 @@
 from nltk import *
+import timeout_decorator
 
 import os.path
 from os import path
@@ -11,10 +12,15 @@ from nltk.sem import Expression
 read_expr = Expression.fromstring
 
 CREATE_FILES = config.create_files
-FILE_PATH = config.hierarchy
+FILE_PATH = config.repo
 DEFINITIONS_PATH = config.definitions
 ALT_FILE = config.alt
 META_FILE = config.meta
+
+
+@timeout_decorator.timeout(30)
+def build_model(mb: MaceCommand): 
+    return mb.build_model()
 
 
 def consistency(lines_t1, lines_t2, new_dir):
@@ -28,8 +34,9 @@ def consistency(lines_t1, lines_t2, new_dir):
 
     # use mb.build_model([assumptions]) to print the input
     consistent = "inconclusive"
+    model = False
     try:
-        model = mb.build_model()
+        model = build_model(mb)
         # found a model, the theories are consistent with each other
         if model:
             consistent = True
@@ -37,7 +44,8 @@ def consistency(lines_t1, lines_t2, new_dir):
             if new_dir:
                 files.create_file(new_dir, "consistent_model", consistent_model)
 
-    except Exception:
+    except Exception as e:
+        print(e)
         consistent = "inconclusive"  # inconclusive results so far, no model found
 
     # no model exists, or Mace reached max number of models
@@ -57,7 +65,8 @@ def consistency(lines_t1, lines_t2, new_dir):
                     files.create_file(new_dir, "inconsistent_proof", inconsistent_proof)
             else:
                 consistent = "inconclusive"
-        except Exception:  # proof timeout, reached max time limit
+        except Exception as e:  # proof timeout, reached max time limit
+            print(e)
             consistent = "inconclusive"  # no model and no proof, inconclusive relationship
 
     return consistent
@@ -96,7 +105,8 @@ def entailment(lines_t1, lines_t2, new_dir):
             if proven & (entail == 0):
                 get_proof = prover.proof()
                 saved_proofs.append(get_proof)
-        except Exception:  # proof timeout, reached max time limit
+        except Exception as e:  # proof timeout, reached max time limit
+            print(e)
             proof_timeout = True
 
         if proven is False:
@@ -112,7 +122,9 @@ def entailment(lines_t1, lines_t2, new_dir):
 
             # use mb.build_model([assumptions]) to print the input
             try:
-                counterexample = mb.build_model()
+                #counterexample = mb.build_model()
+                counterexample = False
+                counterexample = build_model(mb)
 
                 # counterexample found. does not entail. create file for counterexample
                 if counterexample & (counter_file_created is False):
@@ -121,7 +133,8 @@ def entailment(lines_t1, lines_t2, new_dir):
                         files.create_file(new_dir, "counterexample_found", counterexample_model)
                     counter_file_created = True
 
-            except Exception:
+            except Exception as e:
+                print(e)
                 counterexample = False
 
             # new_axioms.append(mb.goal())
@@ -145,7 +158,7 @@ def entailment(lines_t1, lines_t2, new_dir):
         return True
 
 
-def oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir):
+def oracle(hier, t1_file, t2_file, lines_t1, lines_t2, new_dir):
     rel = ""
     t1 = t1_file.replace(".in", "")
     t2 = t2_file.replace(".in", "")
@@ -156,7 +169,7 @@ def oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir):
     if consistent == "inconclusive":
         files.owl("inconclusive")
         if new_dir:
-            files.delete_dir(os.path.join(FILE_PATH, new_dir))
+            files.delete_dir(os.path.join(FILE_PATH, hier, new_dir))
         rel = "inconclusive_t1_t2"
 
     elif consistent:
@@ -205,7 +218,7 @@ def oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir):
 
 
 # main program
-def main(t1_file=config.t1, t2_file=config.t2):
+def main(hier=config.hierarchy, t1_file=config.t1, t2_file=config.t2):
     # check if relationship has been documented in owl file
     check_rel = files.check()
 
@@ -225,7 +238,7 @@ def main(t1_file=config.t1, t2_file=config.t2):
             for rel in possibilities:
                 dir_12 = rel + "_" + t1 + "_" + t2
                 dir_21 = rel + "_" + t2 + "_" + t1
-                if os.path.isdir(os.path.join(FILE_PATH, dir_12)) or os.path.isdir(os.path.join(FILE_PATH, dir_21)):
+                if os.path.isdir(os.path.join(FILE_PATH, hier, dir_12)) or os.path.isdir(os.path.join(FILE_PATH, hier, dir_21)):
                     print("directory name", dir_12, "or", dir_21, "already exists. cannot create directory with "
                                                                   "proofs and models unless renamed.")
                     exists = True
@@ -235,7 +248,7 @@ def main(t1_file=config.t1, t2_file=config.t2):
             if not exists:
                 try:
                     new_dir = t1 + "_" + t2
-                    os.mkdir(os.path.join(FILE_PATH, new_dir))
+                    os.mkdir(os.path.join(FILE_PATH, hier, new_dir))
                 except OSError:
                     print("directory name", new_dir, "already exists. cannot create directory with proofs and "
                                                      "models unless renamed.")
@@ -246,15 +259,15 @@ def main(t1_file=config.t1, t2_file=config.t2):
         else:
             new_dir = ""
 
-        lines_t1 = theory.theory_setup(os.path.join(FILE_PATH, t1_file))
-        lines_t2 = theory.theory_setup(os.path.join(FILE_PATH, t2_file))
+        lines_t1 = theory.theory_setup(os.path.join(FILE_PATH, hier, t1_file))
+        lines_t2 = theory.theory_setup(os.path.join(FILE_PATH, hier, t2_file))
 
         relationship = ""
         if lines_t1 and lines_t2: 
             if not path.exists(DEFINITIONS_PATH):
                 print("definitions directory ", DEFINITIONS_PATH, " not found")
             else:
-                relationship = oracle(t1_file, t2_file, lines_t1, lines_t2, new_dir)
+                relationship = oracle(hier, t1_file, t2_file, lines_t1, lines_t2, new_dir)
     else:
         relationship = check_rel
 

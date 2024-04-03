@@ -1,4 +1,5 @@
 import os
+import re
 import config
 
 DEFINITIONS_PATH = config.definitions
@@ -6,7 +7,7 @@ DEFINITIONS_PATH = config.definitions
 
 def concatenate_axioms(lines):
     # remove specific lines
-    [lines.remove(x) for x in lines if "formulas(assumptions)" in x]
+    [lines.remove(x) for x in lines if re.match('^formulas',x)]
     [lines.remove(y) for y in lines if "end_of_list" in y]
 
     # put axioms together into one list

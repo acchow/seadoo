@@ -33,7 +33,7 @@ export PATH="<file_location_of_installed_prover>/LADR-2009-11A/bin:$PATH"
 ```
 <br/>
 
-## **hashemi**
+## **search/hashemi**
 Implementation of the Hashemi procedure. Constructs the closest matching theory to 
 models provided by the user (consistent with all examples and inconsistent with all counterexamples)
 using existing axioms from a *chsain decomposition of theories. 
@@ -61,18 +61,32 @@ Important notes:
 
 #### Run hashemi procedure from /seadoo
 ```
-mv ~/seadoo/hashemi/hashemi_config_template.py ~/seadoo/config.py       //Follow instructions for setup in config.py
-python3 -m hashemi.search
+mv ~/seadoo/config_template.py ~/seadoo/config.py       //Follow instructions for setup in config.py
+python3 -m search.hashemi
 ```
 <br/>
+
+## **search/modular_ontology**
+Extension of the Hashemi procedure to generate modular ontologies. Checks for consistent nondecomposable theories by root theory comparison and whether residue axioms from weakly reducible hierarchies are required to generate an ontology bottom-up. The same setup files as `search.hashemi` are required. 
+
+An SQL database should be set up as well, with credentials specified in the config file. The queries to create the schema and insert values are under `db/`. Additional entries may be required for future development, as it currently only contains information about hierarchies used in preliminary testing data, which are: the `orderings`, `graphs`, `subposet`, `subgraph`, and `mereograph` hierarchies. The `nondecomp_hierarchies` column entries must be listed in alphabetical order. 
+
+#### Run modular ontology generation procedure from /seadoo
+```
+mv ~/seadoo/config_template.py ~/seadoo/config.py       //Follow instructions for setup in config.py
+python3 -m db.create_schema
+python3 -m search.modular_ontology.py
+```
+</br>
 
 ## **p9_tools**
 Additional packages used for [hashemi](#hashemi). Can also be used independently as tools
 for theories in Prover9 syntax. The [parse](https://github.com/acchow/seadoo/tree/master/p9_tools/parse) 
 module is required for all other functionality. 
 
-## **relationship**
-Checks for consistency and finds the relationship between two theories. 
+## **p9_tools/relationship**
+Checks for consistency and finds the relationship between two theories. Prover9 is set to terminate after 30 seconds by default if a proof cannot be found.  Mace4 is set to terminate after searching for 10 models, or 30 seconds (whichever comes sooner). 
+
 There are 6 different outcomes:
 1. equivalent
 2. one theory entails the other 
@@ -83,12 +97,12 @@ There are 6 different outcomes:
 
 #### Run relationship from seadoo/
 ```
-mv ~/seadoo/p9_tools/relationship/relationship_config_template.py ~/seadoo/config.py             //Follow instructions for setup in config.py
+mv ~/seadoo/config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
 python3 -m p9_tools.relationship.relationship
 ```
 <br/>
 
-## **insertion**
+## **p9_tools/insertion**
 There are 3 use cases for this package: 
 1. Insert a theory into an existing chain decomposition (.csv file)
 2. Search for an equivalent theory in an existing chain decomposition (.csv file)
@@ -97,15 +111,15 @@ There are 3 use cases for this package:
 ### Use Case 1 and 2
 #### Run insertion from seadoo/
 ```
-mv ~/seadoo/p9_tools/insertion/insertion_config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
+mv ~/seadoo/config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
 python3 -m p9_tools.insertion.insertion
 ```
 
 ### Use Case 3
 #### Run construct from seadoo/
 ```
-mv ~/seadoo/p9_tools/insertion/insertion_config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
-touch <name_of_chain_decomp>.csv                                                  //Open this file and add a 0 as the first entry
+mv ~/seadoo/config_template.py ~/seadoo/config.py    //Follow instructions for setup in config.py
+touch <name_of_chain_decomp>.csv                     //Open this file and add a 0 as the first entry
 python3 -m p9_tools.insertion.construct
 ```
 <br><br/>
