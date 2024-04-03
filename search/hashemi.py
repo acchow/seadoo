@@ -321,7 +321,7 @@ def hashemi(hier: str, report: bool=True):
                 ub = theory.theory_setup(os.path.join(REPO_PATH, hier, input_chains[bracket[0]][bracket[2]]))
                 if ub: 
                     ub_axioms.update(ub)
-                print("bracket from chain", bracket[0] + 1, best_match, "cannot be further refined\n")
+                print("\nbracket from chain", bracket[0] + 1, best_match, "cannot be further refined\n")
         answer_report.append("chain " + str(bracket[0] + 1) + ": " + str(best_match) + "\n")
 
     # final answer

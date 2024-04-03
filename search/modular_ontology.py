@@ -55,8 +55,8 @@ def nondecomp() -> dict:
 
     # compare the axioms for each signature with every root theory 
     for key in nd_map: 
-        print('\nfinding nondecomposable hierarchy match for', key, 'relation signature...')
-        nd_map[key]['nd'] = []
+        print('\nfinding nondecomposable hierarchy match for', key, 'relation signature')
+        nd_map[key]['nd'] = None
         for hier in nd:
             # get root theory
             if not hier['root_theory']: 
@@ -78,15 +78,15 @@ def nondecomp() -> dict:
             rt_lines = theory.theory_setup(rt_path)
             consistent = relationship.consistency(nd_map[key]['asser'], rt_lines, new_dir="")
             if consistent is True: 
-                nd_map[key]['nd'].append(hier['hierarchy_name'])
+                nd_map[key]['nd'] = hier['hierarchy_name']
+            else: 
+                # remove mapping axiom for this hierarchy 
+                nd_map[key]['asser'].remove(map_axiom)
 
-            # remove mapping axiom for this hierarchy 
-            nd_map[key]['asser'].remove(map_axiom)
-
-        if not nd_map[key]['nd']: 
+        if nd_map[key]['nd'] is None: 
             print('inconsistent with all nd hierarchies')
         else: 
-            print(key,'is consistent with', nd_map[key]['nd'])
+            print(key,'\n-> consistent with', nd_map[key]['nd'])
     return nd_map
 
 
@@ -96,10 +96,10 @@ def get_trunk_theories(hier: str) -> list:
     try:
         trunk_df = pd.read_csv(path, usecols=[1]).values.tolist()
     except FileNotFoundError: 
-        print(path, 'chain decomposition not found. unable to search.')
+        print('\n', path, 'chain decomposition not found. unable to search.')
         return False
     except pd.errors.EmptyDataError: 
-        print(path, 'chain decomposition is empty. unable to search.')
+        print('\n', path, 'chain decomposition is empty. unable to search.')
         return False
     trunk_df = [t for t in trunk_df if list(filter(lambda a: pd.notna(a), t))]
     trunk_theory_list = list(set(str(s)[2:-2] + ".in" for s in trunk_df))
@@ -108,6 +108,7 @@ def get_trunk_theories(hier: str) -> list:
 
 def get_theory_pairs(theories: list) -> list:
     check = {}
+    print(list(itertools.permutations(list(set(theories)),2)))
     if len(theories) >= 2: 
         pairs = list(itertools.combinations(list(set(theories)),2))
         for t in theories: 
@@ -124,24 +125,34 @@ def get_theory_pairs(theories: list) -> list:
 
 
 def check_reducible(nd_map: dict): 
+    model_lines = []
     check = {}              #store if found trunk theories for hierarchy already
     reducible = True
     weak_reducible_trunk = {}
 
-    theories = [theory for signature in nd_map for theory in nd_map[signature]['nd']]
-    pairs = get_theory_pairs(theories)          
+    # get nd matches and set up model for trunk theory comparisons
+    nd_hier = []
+    for key in nd_map: 
+        nd_match = nd_map[key]['nd']
+        if nd_match is not None: 
+            nd_hier.append(nd_match)
+            model_lines.extend(nd_map[key]['asser'])
+    
+    # get combinations and retrieve weak reducible hierarchies
+    pairs = list(itertools.combinations(sorted(list(set(nd_hier))),2))
     temp = get_hierarchies_by_type(2)
     candidate_hier = []
     for hier in temp: 
         if hier['nondecomp_hierarchies'] and tuple(hier['nondecomp_hierarchies'].split(',')) in pairs: 
             candidate_hier.append(hier)
 
+    # get trunk theories 
     for hier in candidate_hier: 
         name = hier['hierarchy_name']
         if name not in check:
             theories = get_trunk_theories(name)
             if not theories: 
-                print('skipping...')
+                print('no trunk theories. skipping...')
                 continue
             check[name] = []
             for t in theories: 
@@ -154,14 +165,12 @@ def check_reducible(nd_map: dict):
 
         # check if all examples falsify all trunk theories, if yes, then it is reducible, if not, then it needs residue axioms 
         for t in check[name]: 
-            for ex_file in os.listdir(EX_PATH):
-                if ex_file.endswith(".in"):
-                    model_lines, _ = model.model_setup(os.path.join(EX_PATH, ex_file))
-                    if relationship.consistency(model_lines, t['lines'],new_dir="") is True:
-                        reducible = False
-                        if name not in weak_reducible_trunk: 
-                            weak_reducible_trunk[name] = set()
-                        weak_reducible_trunk[name].add(t['theory_name'])
+            if relationship.consistency(model_lines, t['lines'],new_dir="") is True:
+                reducible = False
+                if name not in weak_reducible_trunk: 
+                    weak_reducible_trunk[name] = set()
+                weak_reducible_trunk[name].add(t['theory_name'])
+
     return reducible, weak_reducible_trunk
 
 
@@ -171,22 +180,21 @@ if __name__ == "__main__":
     if nd_map: 
         reducible, trunk = check_reducible(nd_map)
         if not reducible:               #run hashemi on weakly reducible hierarchies
-            print('weakly reducible combinations, searching for residue axioms...')
+            print('\nweakly reducible. searching for residue axioms...')
             for hier in trunk: 
                 results.extend(hashemi(hier,report=False))
             generate_answer_report('weak_reducible_module', ', '.join(trunk.keys()), results)
         else: 
-            print('reducible. combining axioms...')
+            print('\nreducible. combining axioms...')
             hierarchies = set()
 
             for signature in nd_map: 
-                for hier in nd_map[signature]['nd']: 
-                    hierarchies.add(hier)
+                hierarchies.add(nd_map[signature]['nd'])
 
             hierarchies = list(hierarchies)
             for hier in hierarchies: 
                 results.extend(hashemi(hier,report=False))
-            generate_answer_report('reducible_module', ', '.join(hierarchies), results)
+            generate_answer_report('reducible_module', '-'.join(hierarchies), results)
     else: 
         generate_answer_report('no_match','', ['inconsistent with all nondecomposable hierarchies'])
             
