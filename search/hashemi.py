@@ -5,7 +5,6 @@ from p9_tools.relationship import relationship, files
 from p9_tools.parse import theory, model
 import os
 import time
-import re
 import mysql.connector
 from mysql.connector import Error
 
@@ -64,28 +63,6 @@ def find_weak(hier, chain, model_lines):
     return weakest
 
 
-# function to identify the definitions required to pull from
-# parsing all the signatures that appear before an opening parentheses
-def extract_signatures(lines: list) -> dict:
-    s = {}
-    for axiom in lines:
-        i = axiom.find('(')
-        j = axiom.find(')')
-        if j <= i or i == -1 or j == -1: 
-            continue
-        signature = axiom[:i] if axiom[0] != '-' else axiom[1:i]
-        if re.match('^[a-zA-Z0-9_]+$', signature): 
-            args = len(axiom[i+1:j].split(","))    # number of arguments
-            if signature not in s: 
-                s[signature] = {
-                    'args': args,
-                    'axioms': [axiom]
-                }
-            else: 
-                s[signature]['axioms'].append(axiom)
-    return s
-
-
 # retrieve translation definitions given a relation signature
 def translation_definitions(signature):
     file_name = str(signature) + ".in"
@@ -107,10 +84,10 @@ def find_bracket(hier, chain):
     for ex_file in os.listdir(EX_PATH):
         if ex_file.endswith(".in"):
             print("\nexample", ex_file)
-            model_lines = model.model_setup(os.path.join(EX_PATH, ex_file), closed_world=True)
+            model_lines, _ = model.model_setup(os.path.join(EX_PATH, ex_file))
             
             # add translations if provided
-            signatures = extract_signatures(model_lines)
+            signatures = model.extract_signatures(model_lines)
             for s in signatures:
                 model_lines += translation_definitions(s)
 
@@ -126,10 +103,10 @@ def find_bracket(hier, chain):
     for cex_file in os.listdir(CEX_PATH):
         if cex_file.endswith(".in"):
             print("\ncounterexample", cex_file)
-            model_lines = model.model_setup(os.path.join(CEX_PATH, cex_file), closed_world=True)
+            model_lines, _ = model.model_setup(os.path.join(CEX_PATH, cex_file))
             
             # add translations if provided
-            signatures = extract_signatures(model_lines)
+            signatures = model.extract_signatures(model_lines)
             for s in signatures:
                 model_lines += translation_definitions(s)
 
@@ -221,7 +198,7 @@ def generate_answer_report(f_name: str, hiers: str, results: list):
                             % \
                             (time_obj.tm_year, time_obj.tm_mon, time_obj.tm_mday,  
                             time_obj.tm_hour, time_obj.tm_min, time_obj.tm_sec)
-    answer_report_file_name = f_name + '_' + timestamp + '.txt'
+    answer_report_file_name = f_name + '_' + hiers + '_' + timestamp + '.txt'
 
     with open(os.path.join(os.path.sep, ANSWER_REPORT, answer_report_file_name), "w") as f:
         f.write('SEADOO Hashemi Search Answer Report\nTimestamp: ' + timestamp +'\n')
@@ -236,9 +213,8 @@ def generate_answer_report(f_name: str, hiers: str, results: list):
 
         f.write('\n\nHierarchy/ies match: '+hiers)
 
-        results.insert(0,'\n\nResults:\n')
         f.writelines(results)
-        print('\nanswer report', answer_report_file_name, 'created.\n')
+        print('\nanswer report', answer_report_file_name, 'saved to', ANSWER_REPORT, '\n')
     return
 
 
@@ -262,7 +238,7 @@ def hashemi(hier: str, report: bool=True):
     ub_axioms = set()
 
     # answer report
-    answer_report = []
+    answer_report = ['\n\nResults for ',hier,' hierarchy:\n']
 
     try:
         new_dir = os.path.join(SEARCH_PATH, "models_to_classify")
@@ -282,21 +258,20 @@ def hashemi(hier: str, report: bool=True):
             axioms = theory.theory_setup(os.path.join(REPO_PATH, hier, best_match))
             if axioms: 
                 best_match_axioms.update(axioms)
-            #for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, best_match)):
-             #   best_match_axioms.add(axiom)
             print("best matching theory from chain", bracket[0] + 1, "is", best_match, "\n")
         else:
-            # dialogue phase
             # refine upper bound
             ub_min = False
             lb_theory = input_chains[bracket[0]][bracket[1]]
             while ub_min is False and bracket[2] > 0:
                 ub_theory = input_chains[bracket[0]][bracket[2]]
                 ub_model = "ub_model_" + lb_theory.replace(".in", "") + "_" + ub_theory
+
                 # look for a model
                 ub_bracket_model = setup_bracket_model(os.path.join(REPO_PATH, hier, lb_theory), os.path.join(REPO_PATH, hier, ub_theory))
                 if ub_bracket_model and generate_model(ub_bracket_model, os.path.join(REPO_PATH, hier, new_dir), ub_model):
                     ans = input("is " + os.path.join(new_dir, ub_model) + " an example? (y/n):")
+
                     # omits a model
                     if ans == 'y':
                         bracket[2] -= 1
@@ -308,15 +283,18 @@ def hashemi(hier: str, report: bool=True):
 
             # refine lower bound
             lb_max = False
+
             # while lb_max is False and bracket[1] < bracket[2]:
             while lb_max is False and bracket[1] < len(input_chains[bracket[0]])-1:
                 lb_theory = input_chains[bracket[0]][bracket[1]]
                 lb_theory_next = input_chains[bracket[0]][bracket[1] + 1]   # subsequent theory in the chain
                 lb_model = "lb_model_" + lb_theory.replace(".in", "") + "_" + lb_theory_next
+
                 # look for a model
                 lb_bracket_model = setup_bracket_model(os.path.join(REPO_PATH, hier, lb_theory), os.path.join(REPO_PATH, hier, lb_theory_next))
                 if lb_bracket_model and generate_model(lb_bracket_model, os.path.join(REPO_PATH, hier, new_dir), lb_model):
                     ans = input("is " + os.path.join(new_dir, lb_model) + " an example? (y/n):")
+
                     # contains an unintended model
                     if ans == 'n':
                         bracket[1] += 1  # move lower bound up
@@ -331,8 +309,6 @@ def hashemi(hier: str, report: bool=True):
                 axioms = theory.theory_setup(os.path.join(REPO_PATH, hier, best_match))
                 if axioms: 
                     best_match_axioms.update(axioms)
-                #for axiom in theory.theory_setup(os.path.join(REPO_PATH, hier, best_match)):
-                 #   best_match_axioms.add(axiom)
                 print("best matching theory from chain", bracket[0] + 1, "is", best_match, "\n")
             elif bracket[1] > bracket[2]:
                 best_match = "no bracket found"
@@ -351,33 +327,20 @@ def hashemi(hier: str, report: bool=True):
     # final answer
     # best match axioms
     if best_match_axioms:
-        answer_report.append("\n\nbest matching theory found:\n")
-        print("best matching theory: ")
-        for axiom in best_match_axioms:
-            answer_report.append(axiom + ".")
-            print(axiom)
+        answer_report.append("\nBest matching theory found:\n")
+        answer_report.extend(best_match_axioms)
 
     # union of brackets
     elif lb_axioms and ub_axioms:
-        answer_report.append("\n\nbest matching bracket found:\n")
-        print("best matching bracket")
-
-        answer_report.append("\nlower bound:")
-        print("lower bound: ")
-        for axiom in lb_axioms:
-            answer_report.append(axiom + ".\n")
-            print(axiom)
-
-        answer_report.append("\n\nupper bound:")
-        print("upper bound: ")
-        for axiom in ub_axioms:
-            answer_report.append(axiom + ".\n")
-            print(axiom)
+        answer_report.append("\nBest matching bracket found:\n")
+        answer_report.append("\nLower bound axioms:\n")
+        answer_report.extend(lb_axioms)
+        answer_report.append("\nUpper bound axioms:\n")
+        answer_report.extend(ub_axioms)
 
     # no matches
     else:
-        answer_report.append("\n\nno best match exists")
-        print("no best match exists")
+        answer_report.append("\n\nNo best match exists.")
 
     if report:
         generate_answer_report(hier,hier,answer_report)
@@ -386,4 +349,5 @@ def hashemi(hier: str, report: bool=True):
 
 
 if __name__ == "__main__":
-    hashemi(config.hierarchy)
+    results = hashemi(config.hierarchy)
+
