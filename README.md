@@ -10,19 +10,6 @@ python3 -m venv venv                    //Create virtual environment
 source venv/bin/activate                //Activate
 pip install -r requirements.txt         //Install requirements
 ```
-
-## Misc. Files Setup
-**These should be moved to the directory where the ontology files are stored on your local system `(e.g., ~/seadoo/ontologies/orderings/)` after they are created using the commands below.**
-The definitions directory contains any translation definition files that are used to map relations to models. 
-This directory can be empty. 
-The .owl files contain any relationships that have already been determined between 2 theories. They are 
-populated by the relationship scripts. This speeds up checking and allows the procedures to skip theorem proving
-the next time the theories are encountered.
-```
-mkdir definitions
-touch metatheory.owl
-touch alt-metatheory.owl
-```
 <br/>
 
 ## Install theorem prover
